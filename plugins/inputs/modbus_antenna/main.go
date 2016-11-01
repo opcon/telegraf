@@ -112,5 +112,5 @@ func (a *ModbusAntenna) initAnt() (err error) {
 }
 
 func init() {
-	inputs.Add("antenna", func() telegraf.Input { return &ModbusAntenna{} })
+	inputs.Add("modbus_antenna", func() telegraf.Input { return &ModbusAntenna{} })
 }
