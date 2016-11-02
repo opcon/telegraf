@@ -25,12 +25,12 @@ type ModbusAntenna struct {
 var ModbusAntennaConfig = `
   ## Collect data from a modbus antenna controller 
   antenna_type = "patriot12m"
-  # address = IP:PORT pair
+  # Ip:port
   address = "192.168.1.22:502"
-  slave_id = 0
-  # Timeout in milliseconds
-  timeout = 10000
-  max_gap = 1
+  #slave_id = 0
+  ##Timeout in milliseconds
+  #timeout = 10000
+  #max_gap = 1
 `
 
 func (a *ModbusAntenna) SampleConfig() string {
@@ -100,14 +100,20 @@ func (a *ModbusAntenna) initAnt() (err error) {
 	if err != nil {
 		return
 	}
+
 	handler := modbus.NewTCPClientHandler(a.Address)
 	handler.SlaveId = byte(a.SlaveId)
+	if a.Timeout == 0 {
+		a.Timeout = 10000
+	}
 	handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
 	err = handler.Connect()
 	if err != nil {
 		return
 	}
 	a.modbusClient = modbus.NewClient(handler)
+
+	a.initDone = true
 	return
 }
 
