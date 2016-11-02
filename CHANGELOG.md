@@ -29,6 +29,7 @@
 - [#1530](https://github.com/influxdata/telegraf/issues/1530): Fix prometheus_client reload panic
 
 ## v1.0 [2016-09-08]
+## v1.0 Release Candidate 1 [2016-08-23]
 
 ### Release Notes
 
