@@ -1,5 +1,7 @@
 package fieldsystem
 
+//Functions to read FS share memory
+
 /*
 #include <stdlib.h>
 #include <string.h>
@@ -24,7 +26,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"unsafe"
 )
@@ -47,7 +48,7 @@ const (
 	GO_ID     = 7
 )
 
-func GetFSSHM() (*Fscom, error) {
+func GetSHM() (*Fscom, error) {
 	cpath := C.CString(SHM_PATH)
 	defer C.free(unsafe.Pointer(cpath))
 	rckey, err := C.ftok(cpath, C.int(SHM_ID))
@@ -90,7 +91,7 @@ func (fs *Fscom) SemLocked(semname string) (bool, error) {
 		}
 	}
 	if semnum == -1 {
-		return false, error.New("sem not found")
+		return false, errors.New("sem not found")
 	}
 	ret, err := C.get_sem_val(sid, C.int(semnum))
 	if err != nil {
