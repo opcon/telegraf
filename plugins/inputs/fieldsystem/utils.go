@@ -4,7 +4,7 @@ package fieldsystem
 func mapdiff(old map[string]interface{}, new map[string]interface{}) map[string]interface{} {
 	diff := make(map[string]interface{})
 	for k, nval := range new {
-		if oval, ok := old["foo"]; !ok || oval != nval {
+		if oval, ok := old[k]; !ok || oval != nval {
 			diff[k] = nval
 		}
 	}

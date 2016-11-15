@@ -25,7 +25,6 @@ import "C"
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"unsafe"
 )
@@ -80,7 +79,6 @@ func (fs *Fscom) SemLocked(semname string) (bool, error) {
 	if int(sid) < 0 || err != nil {
 		return false, err
 	}
-	fmt.Printf("%d\n", sid)
 	semnum := -1
 	semname = strings.TrimSpace(semname)
 	for i := 0; i < int(fs.Sem.Allocated); i++ {
