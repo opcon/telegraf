@@ -41,6 +41,7 @@ func (s *FieldSystem) Gather(acc telegraf.Accumulator) (err error) {
 	// Ignore if FS not running
 	if l, err := s.fs.SemLocked("fs"); !l || err != nil {
 		fields["fs"] = false
+		acc.AddFields("fs", fields, tags)
 		return nil
 	}
 
@@ -59,14 +60,18 @@ func (s *FieldSystem) Gather(acc telegraf.Accumulator) (err error) {
 	fields["tracking"] = (s.fs.Ionsor != 0)
 
 	// FS strings
-	fields["log"] = string(s.fs.LLOG[:])
-	fields["schedule"] = string(s.fs.LSKD[:])
-	fields["source"] = string(s.fs.Lsorna[:])
+	fields["log"] = fsstr(s.fs.LLOG[:])
+	fields["schedule"] = fsstr(s.fs.LSKD[:])
+	fields["source"] = fsstr(s.fs.Lsorna[:])
 
 	// TODO: diff
 
 	acc.AddFields("fs", fields, tags)
 	return nil
+}
+
+func fsstr(s []byte) string {
+	return strings.TrimSpace(string(s))
 }
 
 func init() {

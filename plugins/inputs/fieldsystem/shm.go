@@ -52,16 +52,16 @@ func GetSHM() (*Fscom, error) {
 	cpath := C.CString(SHM_PATH)
 	defer C.free(unsafe.Pointer(cpath))
 	rckey, err := C.ftok(cpath, C.int(SHM_ID))
-	if int64(rckey) == -1 {
-		return nil, err
+	if int64(rckey) == -1 || err != nil {
+		return nil, errors.New("could not find FS key")
 	}
 	id, err := C.shmget(rckey, C.size_t(unsafe.Sizeof(&Fscom{})), C.int(0444))
-	if int64(id) == -1 {
-		return nil, err
+	if int64(id) == -1 || err != nil {
+		return nil, errors.New("could not get find FS shm")
 	}
 	ptr, err := C.shmat(id, nil, C.int(C.SHM_RDONLY))
-	if *(*int)(unsafe.Pointer(ptr)) == -1 {
-		return nil, err
+	if *(*int)(unsafe.Pointer(ptr)) == -1 || err != nil {
+		return nil, errors.New("could not attach to FS shm")
 	}
 	return (*Fscom)(ptr), nil
 }

@@ -47,6 +47,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/fibaro"
 	_ "github.com/influxdata/telegraf/plugins/inputs/file"
 	_ "github.com/influxdata/telegraf/plugins/inputs/filecount"
+	_ "github.com/influxdata/telegraf/plugins/inputs/fieldsystem"
 	_ "github.com/influxdata/telegraf/plugins/inputs/filestat"
 	_ "github.com/influxdata/telegraf/plugins/inputs/fireboard"
 	_ "github.com/influxdata/telegraf/plugins/inputs/fluentd"
