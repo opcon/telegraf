@@ -1,8 +1,9 @@
-package rdbe
+package rdbemulticast
 
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -14,8 +15,8 @@ import (
 	"github.com/influxdata/telegraf/plugins/parsers"
 )
 
-// Rdbe Based on UDP listener
-type Rdbe struct {
+// RdbeMulticast Based on UDP listener
+type RdbeMulticast struct {
 	DeviceIds              []string
 	AllowedPendingMessages int
 	SaveRaw                bool
@@ -43,10 +44,13 @@ type Rdbe struct {
 const UDP_MAX_PACKET_SIZE int = 64 * 1024
 
 const sampleConfig = `
-  ## IDs of RDBE devices to listen 
+  ## RDBE devices to listen. Can be an ID or a multicast address and IP
+  # eg.
+  # device_ids = ["a","b","c","d"]
+  # device_ids = ["a","b",","d"]
   device_ids = ["a","b","c","d"]
   ## Save raw Tsys and Pcal measurments
-  ## these are saved into the "rdbe_raw" measurment
+  ## these are saved into the "rdbe_multicast_raw" measurment
   save_raw = false
 
   ## Extra tags should be added
@@ -56,25 +60,25 @@ const sampleConfig = `
   #  foo = "bar"
 `
 
-func (u *Rdbe) SampleConfig() string {
+func (u *RdbeMulticast) SampleConfig() string {
 	return sampleConfig
 }
 
-func (u *Rdbe) Description() string {
+func (u *RdbeMulticast) Description() string {
 	return "RDBE UDP Multicast listener"
 }
 
 // All the work is done in the Start() function, so this is just a dummy
 // function.
-func (u *Rdbe) Gather(_ telegraf.Accumulator) error {
+func (u *RdbeMulticast) Gather(_ telegraf.Accumulator) error {
 	return nil
 }
 
-func (u *Rdbe) SetParser(parser parsers.Parser) {
+func (u *RdbeMulticast) SetParser(parser parsers.Parser) {
 	u.parser = parser
 }
 
-func (u *Rdbe) Start(acc telegraf.Accumulator) error {
+func (u *RdbeMulticast) Start(acc telegraf.Accumulator) error {
 	u.Lock()
 	defer u.Unlock()
 
@@ -88,17 +92,17 @@ func (u *Rdbe) Start(acc telegraf.Accumulator) error {
 		go u.rdbeListen(id)
 	}
 
-	log.Println("Started RDBE listener service")
+	log.Println("Started RDBE Multicast listener service")
 	return nil
 }
 
-func (u *Rdbe) Stop() {
+func (u *RdbeMulticast) Stop() {
 	u.Lock()
 	defer u.Unlock()
 	close(u.done)
 	u.wg.Wait()
 	close(u.in)
-	log.Println("Stopped RDBE listener service")
+	log.Println("Stopped RDBE Multicast listener service")
 }
 
 type rdbepacket struct {
@@ -129,26 +133,47 @@ type rdbepacket struct {
 }
 
 // Get the multicast address from the device ID
-func broadcastAddress(id string) string {
+func broadcastAddress(id string) (*net.UDPAddr, err) {
+	// Try lookup first
+	addr, err := net.ResolveUDPAddr("udp", id)
+	if err == nil {
+		return addr, nil
+	}
+
 	bid := byte(id[0])
 	if bid < 'a' || bid > 'z' {
-		log.Fatal("bad rdbe id %s", id)
+		return nil, errors.New("Invalid multicast address")
 	}
-	addr := fmt.Sprintf("239.0.2.%d", (bid-'a'+1)*10)
+	ip := fmt.Sprintf("239.0.2.%d", (bid-'a'+1)*10)
 	port := 20021 + int(bid-'a')
-	return fmt.Sprintf("%s:%d", addr, port)
+	addr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", ip, port))
+	return addr, err
+
 }
 
-func (u *Rdbe) rdbeListen(id string) {
+func cstr(str []byte) string {
+	n := 0
+	for ; str[n] != 0; n++ {
+	}
+	if n == 0 {
+		return ""
+	}
+	return string(str[:n-1])
+}
+
+func (u *RdbeMulticast) rdbeListen(id string) {
 	defer u.wg.Done()
 
-	addr, _ := net.ResolveUDPAddr("udp", broadcastAddress(id))
-	conn, err := net.ListenMulticastUDP("udp", nil, addr)
-	defer conn.Close()
+	addr, err := broadcastAddress(id)
 	if err != nil {
-		log.Fatalf("ERROR: ListenUDP - %s", err)
+		log.Fatal(err)
 	}
-	log.Printf("RDBE server listening to %s", conn.LocalAddr().String())
+	conn, err := net.ListenMulticastUDP("udp", nil, addr)
+	if err != nil {
+		log.Fatalf("ERROR: ListenUDP - %s\n", err)
+	}
+	defer conn.Close()
+	log.Printf("RDBE Multicast listening to %s\n", conn.RemoteAddr().String())
 
 	var pack rdbepacket
 	buf := make([]byte, UDP_MAX_PACKET_SIZE)
@@ -183,7 +208,7 @@ func (u *Rdbe) rdbeListen(id string) {
 				"rawifx":  fmt.Sprintf("%d", pack.RawIfx),
 			}
 			fields := map[string]interface{}{
-				"readtime":  pack.ReadTime,
+				"readtime":  cstr(pack.ReadTime),
 				"epochref":  pack.EpochRef,
 				"epochsec":  pack.EpochSec,
 				"interval":  pack.Interval,
@@ -192,7 +217,7 @@ func (u *Rdbe) rdbeListen(id string) {
 				"ppsoffset": pack.PpsOffset,
 				"gpsoffset": pack.GpsOffset,
 			}
-			u.acc.AddFields("rdbe", fields, tags, time.Now())
+			u.acc.AddFields("rdbe_multicast", fields, tags, time.Now())
 
 			if u.SaveRaw {
 				//TODO: store values in a better way?
@@ -202,16 +227,16 @@ func (u *Rdbe) rdbeListen(id string) {
 					"tsysoff":    pack.TsysOff,
 					"pcalsin":    pack.PcalSin,
 					"pcalcos":    pack.PcalCos,
-					"statstr":    pack.StatStr,
+					"statstr":    cstr(pack.StatStr),
 				}
-				u.acc.AddFields("rdbe_raw", rawfields, tags, time.Now())
+				u.acc.AddFields("rdbe_multicast_raw", rawfields, tags, time.Now())
 			}
 		}
 	}
 }
 
 func init() {
-	inputs.Add("rdbe", func() telegraf.Input {
-		return &Rdbe{}
+	inputs.Add("rdbe_multicast", func() telegraf.Input {
+		return &RdbeMulticast{}
 	})
 }
