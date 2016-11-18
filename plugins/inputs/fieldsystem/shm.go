@@ -32,19 +32,20 @@ import (
 // TODO: These should be generated from "/usr2/fs/include/ipckeys.h"
 const (
 	SHM_PATH  = "/usr2/fs"
-	SHM_ID    = 1
 	CLS_PATH  = "/usr2/fs"
-	CLS_ID    = 2
 	SKD_PATH  = "/usr2/fs"
-	SKD_ID    = 3
 	BRK_PATH  = "/usr2/fs"
-	BRK_ID    = 4
 	SEM_PATH  = "/usr2/fs"
-	SEM_ID    = 5
 	NSEM_PATH = "/usr2/fs"
-	NSEM_ID   = 6
 	GO_PATH   = "/usr2/fs"
-	GO_ID     = 7
+
+	SHM_ID  = 1
+	CLS_ID  = 2
+	SKD_ID  = 3
+	BRK_ID  = 4
+	SEM_ID  = 5
+	NSEM_ID = 6
+	GO_ID   = 7
 )
 
 func GetSHM() (*Fscom, error) {
