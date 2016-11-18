@@ -10,6 +10,7 @@ import (
 
 type FieldSystem struct {
 	FullRecord bool
+	Rdbe       bool
 
 	fs         *Fscom
 	prevFields map[string]interface{}
@@ -19,6 +20,8 @@ var FieldSystemConfig = `
   ## Record all fields each gather period, rather
   ## than just differences
   #full_record = false 
+  ## Record Tsys and Pcal from RDBE calculated by FS
+  #rdbe = false 
 `
 
 func (s *FieldSystem) SampleConfig() string {
@@ -69,6 +72,11 @@ func (s *FieldSystem) Gather(acc telegraf.Accumulator) (err error) {
 	if len(diff) > 0 {
 		acc.AddFields("fs", diff, tags)
 	}
+
+	if s.Rdbe {
+
+	}
+
 	return nil
 }
 
