@@ -1,27 +1,37 @@
 package fieldsystem
 
 import (
-	"fmt"
+	"log"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
 
 type FieldSystem struct {
-	FullRecord bool
-	Rdbe       bool
+	Rdbe      bool
+	Precision internal.Duration
 
-	fs         *Fscom
-	prevFields map[string]interface{}
+	sync.Mutex
+	wg   sync.WaitGroup
+	done chan struct{}
+
+	acc telegraf.Accumulator
+
+	fs *Fscom
 }
 
 var FieldSystemConfig = `
-  ## Record all fields each gather period, rather
-  ## than just differences
-  #full_record = false 
-  ## Record Tsys and Pcal from RDBE calculated by FS
+  ## Poll the Field System state through shared memory. 
+  ##
+  ## Record RDBE Tsys and Pcal calculated by FS.
+  ## This complements the rdbe_multicast input.
   #rdbe = false 
+  ## Rate to poll FS variables.
+  #precision = "100ms"
 `
 
 func (s *FieldSystem) SampleConfig() string {
@@ -29,59 +39,76 @@ func (s *FieldSystem) SampleConfig() string {
 }
 
 func (s *FieldSystem) Description() string {
-	return "Query the Field system state"
+	return "Poll the Field System state through shared memory."
 }
 
-func (s *FieldSystem) Gather(acc telegraf.Accumulator) (err error) {
-	if s.fs == nil {
-		s.fs, err = GetSHM()
-		if err != nil {
-			return err
-		}
-	}
+func (s *FieldSystem) Start(acc telegraf.Accumulator) (err error) {
+	s.Lock()
+	defer s.Unlock()
 
-	fields := make(map[string]interface{})
-	tags := make(map[string]string)
+	s.done = make(chan struct{})
+
+	s.acc = acc
+	if s.Precision.Duration == 0 {
+		s.Precision.Duration, _ = time.ParseDuration("100ms")
+	}
+	s.acc.SetPrecision(0, s.Precision.Duration)
+
+	s.fs, err = GetSHM()
+	if err != nil {
+		return err
+	}
 
 	// FS semephores
 	for i := 0; i < int(s.fs.Sem.Allocated); i++ {
 		semname := strings.TrimSpace(string(s.fs.Sem.Name[i][:]))
-		semval, err := s.fs.SemLocked(semname)
-		if err != nil {
-			continue
-		}
-		fields[fmt.Sprintf("%s_running", semname)] = semval
+		s.wg.Add(1)
+		go s.watchsem(semname)
 	}
 
 	// FS bools
-	fields["data_valid"] = (s.fs.Data_valid[0].User_dv != 0)
-	fields["tracking"] = (s.fs.Ionsor != 0)
-
-	// FS strings
-	fields["log"] = fsstr(s.fs.LLOG[:])
-	fields["schedule"] = fsstr(s.fs.LSKD[:])
-	fields["source"] = fsstr(s.fs.Lsorna[:])
-
-	if s.FullRecord {
-		acc.AddFields("fs", fields, tags)
-		return nil
+	fsbools := map[string]*int32{
+		"data_valid": &s.fs.Data_valid[0].User_dv,
+		"tracking":   &s.fs.Ionsor,
+	}
+	for name, b := range fsbools {
+		s.wg.Add(1)
+		go s.watchbool(name, b)
 	}
 
-	diff := mapdiff(s.prevFields, fields)
-	s.prevFields = fields
-	if len(diff) > 0 {
-		acc.AddFields("fs", diff, tags)
+	// FS strings
+	fsstrings := map[string][]byte{
+		"log":      s.fs.LLOG[:],
+		"schedule": s.fs.LSKD[:],
+		"source":   s.fs.Lsorna[:],
+	}
+	for name, str := range fsstrings {
+		s.wg.Add(1)
+		go s.watchstring(name, str)
 	}
 
 	if s.Rdbe {
-
+		for i, _ := range s.fs.Rdbe_tsys_data {
+			s.wg.Add(1)
+			go s.watchrdbe(i)
+		}
 	}
 
+	log.Println("Started FS listener service")
 	return nil
 }
 
-func fsstr(s []byte) string {
-	return strings.TrimSpace(string(s))
+func (s *FieldSystem) Stop() {
+	s.Lock()
+	defer s.Unlock()
+	log.Println("Stopping FS listener service...")
+	close(s.done)
+	s.wg.Wait()
+	log.Println("Stopped FS listener service")
+}
+
+func (s *FieldSystem) Gather(acc telegraf.Accumulator) (err error) {
+	return nil
 }
 
 func init() {
