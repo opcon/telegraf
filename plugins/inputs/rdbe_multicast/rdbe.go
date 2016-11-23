@@ -83,7 +83,6 @@ func (u *RdbeMulticast) Start(acc telegraf.Accumulator) error {
 	defer u.Unlock()
 
 	u.acc = acc
-	u.in = make(chan []byte, u.AllowedPendingMessages)
 	u.done = make(chan struct{})
 	u.listeners = make(map[string]*net.UDPConn)
 
@@ -101,7 +100,6 @@ func (u *RdbeMulticast) Stop() {
 	defer u.Unlock()
 	close(u.done)
 	u.wg.Wait()
-	close(u.in)
 	log.Println("Stopped RDBE Multicast listener service")
 }
 
@@ -133,7 +131,7 @@ type rdbepacket struct {
 }
 
 // Get the multicast address from the device ID
-func broadcastAddress(id string) (*net.UDPAddr, err) {
+func broadcastAddress(id string) (*net.UDPAddr, error) {
 	// Try lookup first
 	addr, err := net.ResolveUDPAddr("udp", id)
 	if err == nil {
@@ -208,7 +206,7 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 				"rawifx":  fmt.Sprintf("%d", pack.RawIfx),
 			}
 			fields := map[string]interface{}{
-				"readtime":  cstr(pack.ReadTime),
+				"readtime":  cstr(pack.ReadTime[:]),
 				"epochref":  pack.EpochRef,
 				"epochsec":  pack.EpochSec,
 				"interval":  pack.Interval,
@@ -227,7 +225,7 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 					"tsysoff":    pack.TsysOff,
 					"pcalsin":    pack.PcalSin,
 					"pcalcos":    pack.PcalCos,
-					"statstr":    cstr(pack.StatStr),
+					"statstr":    cstr(pack.StatStr[:]),
 				}
 				u.acc.AddFields("rdbe_multicast_raw", rawfields, tags, time.Now())
 			}
