@@ -5,7 +5,13 @@ if ! grep "^telegraf:" /etc/group &>/dev/null; then
 fi
 
 if ! id telegraf &>/dev/null; then
-    useradd -r -M telegraf -s /bin/false -d /etc/telegraf -g telegraf
+        if useradd -h 2>&1 | grep -q "^[[:space:]]*-M"; then
+        # Newer version of useradd have -M option to force not creating home dir
+        useradd -r -M telegraf -s /bin/false -d /etc/telegraf
+    else
+        # Older version does not create home dir by default
+        useradd -r telegraf -s /bin/false -d /etc/telegraf
+    fi
 fi
 
 if [[ -d /etc/opt/telegraf ]]; then
