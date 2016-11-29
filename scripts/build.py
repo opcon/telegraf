@@ -17,9 +17,10 @@ import argparse
 ################
 
 # Packaging variables
-PACKAGE_NAME = "telegraf"
+PACKAGE_NAME = "telegraf-vlbi"
 USER = "telegraf"
 GROUP = "telegraf"
+CONFLICTS = "telegraf"
 INSTALL_ROOT_DIR = "/usr/bin"
 LOG_DIR = "/var/log/telegraf"
 SCRIPT_DIR = "/usr/lib/telegraf/scripts"
@@ -69,6 +70,7 @@ fpm_common_args = "-f -s dir --log error \
  --after-remove {} \
  --before-remove {} \
  --rpm-attr 755,{},{}:{} \
+ --conflicts {} \
  --description \"{}\"".format(
     VENDOR,
     PACKAGE_URL,
@@ -81,6 +83,7 @@ fpm_common_args = "-f -s dir --log error \
     POSTREMOVE_SCRIPT,
     PREREMOVE_SCRIPT,
     USER, GROUP, LOG_DIR,
+    CONFLICTS,
     DESCRIPTION)
 
 targets = {
