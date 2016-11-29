@@ -2,31 +2,12 @@ package fieldsystem
 
 //Functions to read FS share memory
 
-/*
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/sem.h>
-
-key_t ftok(const char *pathname, int proj_id);
-int shmget(key_t key, size_t size, int shmflg);
-void *shmat(int shmid, const void *shmaddr, int shmflg);
-int shmdt(const void *shmaddr);
-int shmctl(int shmid, int cmd, struct shmid_ds *buf);
-
-int get_sem_val(int sid, int semnum) {
-        return(semctl(sid, semnum, GETVAL, 0));
-}
-
-*/
-import "C"
-
 import (
 	"errors"
 	"strings"
 	"unsafe"
+
+	"svipc"
 )
 
 // TODO: These should be generated from "/usr2/fs/include/ipckeys.h"
@@ -48,38 +29,36 @@ const (
 	GO_ID   = 7
 )
 
-func GetSHM() (*Fscom, error) {
-	cpath := C.CString(SHM_PATH)
-	defer C.free(unsafe.Pointer(cpath))
-	rckey, err := C.ftok(cpath, C.int(SHM_ID))
-	if int64(rckey) == -1 || err != nil {
-		return nil, errors.New("could not find FS key")
+func GetSHM() (fs *Fscom, err error) {
+	key, err := svipc.Ftok(SHM_PATH, SHM_ID)
+	if err != nil {
+		return
 	}
-	id, err := C.shmget(rckey, C.size_t(unsafe.Sizeof(&Fscom{})), C.int(0444))
-	if int64(id) == -1 || err != nil {
-		return nil, errors.New("could not get find FS shm")
+	id, err := svipc.Shmget(key, unsafe.Sizeof(&Fscom{}), 0666)
+	if err != nil {
+		return
 	}
-	ptr, err := C.shmat(id, nil, C.int(C.SHM_RDONLY))
-	if *(*int)(unsafe.Pointer(ptr)) == -1 || err != nil {
-		return nil, errors.New("could not attach to FS shm")
+	ptr, err := svipc.Shmat(id, 0, svipc.SHM_RDONLY)
+	if err != nil {
+		return
 	}
-	return (*Fscom)(ptr), nil
+	fs = (*Fscom)(ptr)
+	return
 }
 
 // FS stores a list of names for semephores in the NSEM group. The list is in
 // list in fs.Sem.  This function queies the semephones in that group by name.
-func (fs *Fscom) SemLocked(semname string) (bool, error) {
-	cpath := C.CString(NSEM_PATH)
-	defer C.free(unsafe.Pointer(cpath))
-	key, err := C.ftok(cpath, C.int(NSEM_ID))
-	if int64(key) == -1 || err != nil {
-		return false, err
+func (fs *Fscom) SemLocked(semname string) (locked bool, err error) {
+	key, err := svipc.Ftok(NSEM_PATH, NSEM_ID)
+	if err != nil {
+		return
 	}
 
-	sid, err := C.semget(key, 0, 0)
-	if int(sid) < 0 || err != nil {
-		return false, err
+	sid, err := svipc.Semget(key, 0, 0)
+	if err != nil {
+		return
 	}
+
 	semnum := -1
 	semname = strings.TrimSpace(semname)
 	for i := 0; i < int(fs.Sem.Allocated); i++ {
@@ -90,12 +69,15 @@ func (fs *Fscom) SemLocked(semname string) (bool, error) {
 		}
 	}
 	if semnum == -1 {
-		return false, errors.New("sem not found")
+		err = errors.New("sem not found")
+		return
 	}
-	ret, err := C.get_sem_val(sid, C.int(semnum))
+
+	ret, err := svipc.Semctl(sid, semnum, svipc.GETVAL)
 	if err != nil {
-		panic(err)
+		return
 	}
 	// FS uses sems in a strange way
-	return int(ret) == 0, nil
+	locked = (int(ret) == 0)
+	return
 }
