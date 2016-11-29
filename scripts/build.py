@@ -17,7 +17,8 @@ import argparse
 ################
 
 # Packaging variables
-PACKAGE_NAME = "telegraf"
+PACKAGE_NAME = "telegraf-vlbi"
+CONFLICTS = "telegraf"
 INSTALL_ROOT_DIR = "/usr/bin"
 LOG_DIR = "/var/log/telegraf"
 SCRIPT_DIR = "/usr/lib/telegraf/scripts"
@@ -65,7 +66,8 @@ fpm_common_args = "-f -s dir --log error \
  --before-install {} \
  --after-remove {} \
  --before-remove {} \
- --description \"{}\"".format(
+ --description \"{}\" \
+ --conflicts {}".format(
     VENDOR,
     PACKAGE_URL,
     PACKAGE_LICENSE,
@@ -76,22 +78,20 @@ fpm_common_args = "-f -s dir --log error \
     PREINST_SCRIPT,
     POSTREMOVE_SCRIPT,
     PREREMOVE_SCRIPT,
-    DESCRIPTION)
+    DESCRIPTION,
+    CONFLICTS,
+)
 
 targets = {
     'telegraf' : './cmd/telegraf',
 }
 
 supported_builds = {
-    "windows": [ "amd64" ],
-    "linux": [ "amd64", "i386", "armhf", "armel", "arm64", "static_amd64" ],
-    "freebsd": [ "amd64" ]
+    "linux": [ "amd64", "i386"],
 }
 
 supported_packages = {
-    "linux": [ "deb", "rpm", "tar" ],
-    "windows": [ "zip" ],
-    "freebsd": [ "tar" ]
+    "linux": [ "deb", "tar" ],
 }
 
 ################
