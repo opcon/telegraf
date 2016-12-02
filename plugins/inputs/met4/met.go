@@ -47,7 +47,7 @@ func (s *Met4) Gather(acc telegraf.Accumulator) error {
 	}
 
 	line, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil || err != io.EOF {
+	if err != nil && err != io.EOF {
 		return err
 	}
 	fields := parseLine(line)
