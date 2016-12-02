@@ -64,3 +64,4 @@ gopkg.in/mgo.v2 d90005c5262a3463800497ea5a89aed5fe22c886
 gopkg.in/yaml.v2 a83829b6f1293c91addabc89d0571c246397bbf4
 github.com/goburrow/modbus f7afd8db7d8dabd9f1cd3a9e2a9cb289ed6ac08a
 github.com/goburrow/serial 1b57be761cd3a66492333e9367a23c0869f9cc2e
+golang.org/x/sys ca83bd2cb9abb47839b50eb4da612f00158f5870
