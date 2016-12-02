@@ -2,7 +2,6 @@ package met4
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -57,7 +56,7 @@ func (s *Met4) Gather(acc telegraf.Accumulator) error {
 }
 
 func init() {
-	inputs.Add("met4", func() telegraf.Input { return &Met4{Addr: "127.0.0.1:50001"} })
+	inputs.Add("met4", func() telegraf.Input { return &Met4{Address: "127.0.0.1:50001"} })
 }
 
 func parseLine(line string) map[string]interface{} {
