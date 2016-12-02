@@ -2,6 +2,7 @@ package met4
 
 import (
 	"bufio"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -44,13 +45,13 @@ func (s *Met4) Gather(acc telegraf.Accumulator) error {
 	if err != nil {
 		return err
 	}
+
 	line, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
+	if err != nil || err != io.EOF {
 		return err
 	}
 	fields := parseLine(line)
-	tags := make(map[string]string)
-	acc.AddFields("met", fields, tags)
+	acc.AddFields("met", fields, nil)
 
 	return nil
 }
