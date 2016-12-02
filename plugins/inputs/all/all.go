@@ -19,7 +19,6 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/dovecot"
 	_ "github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	_ "github.com/influxdata/telegraf/plugins/inputs/exec"
-	_ "github.com/influxdata/telegraf/plugins/inputs/fieldsystem"
 	_ "github.com/influxdata/telegraf/plugins/inputs/filestat"
 	_ "github.com/influxdata/telegraf/plugins/inputs/graylog"
 	_ "github.com/influxdata/telegraf/plugins/inputs/haproxy"
@@ -38,8 +37,6 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/mailchimp"
 	_ "github.com/influxdata/telegraf/plugins/inputs/memcached"
 	_ "github.com/influxdata/telegraf/plugins/inputs/mesos"
-	_ "github.com/influxdata/telegraf/plugins/inputs/met4"
-	_ "github.com/influxdata/telegraf/plugins/inputs/modbus_antenna"
 	_ "github.com/influxdata/telegraf/plugins/inputs/mongodb"
 	_ "github.com/influxdata/telegraf/plugins/inputs/mqtt_consumer"
 	_ "github.com/influxdata/telegraf/plugins/inputs/mysql"
@@ -61,7 +58,6 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/puppetagent"
 	_ "github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
 	_ "github.com/influxdata/telegraf/plugins/inputs/raindrops"
-	_ "github.com/influxdata/telegraf/plugins/inputs/rdbe_multicast"
 	_ "github.com/influxdata/telegraf/plugins/inputs/redis"
 	_ "github.com/influxdata/telegraf/plugins/inputs/rethinkdb"
 	_ "github.com/influxdata/telegraf/plugins/inputs/riak"
@@ -82,4 +78,10 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/win_perf_counters"
 	_ "github.com/influxdata/telegraf/plugins/inputs/zfs"
 	_ "github.com/influxdata/telegraf/plugins/inputs/zookeeper"
+
+	// VLBI Spesific
+	_ "github.com/influxdata/telegraf/plugins/inputs/fieldsystem"
+	_ "github.com/influxdata/telegraf/plugins/inputs/met4"
+	_ "github.com/influxdata/telegraf/plugins/inputs/modbus_antenna"
+	_ "github.com/influxdata/telegraf/plugins/inputs/rdbe_multicast"
 )
