@@ -1,7 +1,8 @@
 package met4
 
 import (
-	"bufio"
+	"bytes"
+	"errors"
 	"io"
 	"net"
 	"strconv"
@@ -45,12 +46,17 @@ func (s *Met4) Gather(acc telegraf.Accumulator) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
-	line, err := bufio.NewReader(conn).ReadString('\n')
-	if err == nil && err != io.EOF {
+	var buf bytes.Buffer
+	i, err := io.Copy(&buf, conn)
+	if err != nil {
 		return err
 	}
-	fields := parseLine(line)
+	if i == 0 {
+		return errors.New("empty response")
+	}
+	fields := parseLine(buf.String())
 	acc.AddFields("met", fields, nil)
 
 	return nil
