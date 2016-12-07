@@ -94,17 +94,17 @@ func (s *FieldSystem) Start(acc telegraf.Accumulator) (err error) {
 		}
 	}
 
-	log.Println("Started FS listener service")
+	log.Println("I! Started FS listener service...")
 	return nil
 }
 
 func (s *FieldSystem) Stop() {
 	s.Lock()
 	defer s.Unlock()
-	log.Println("Stopping FS listener service...")
+	log.Println("I! Stopping FS listener service...")
 	close(s.done)
 	s.wg.Wait()
-	log.Println("Stopped FS listener service")
+	log.Println("I! Stopped FS listener service.")
 }
 
 func (s *FieldSystem) Gather(acc telegraf.Accumulator) (err error) {
