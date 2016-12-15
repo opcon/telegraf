@@ -40,10 +40,10 @@ type RdbeMulticast struct {
 const UDP_MAX_PACKET_SIZE int = 64 * 1024
 
 const sampleConfig = `
-  ## RDBE devices to listen. Can be an ID or a multicast address and IP
+  ## RDBE devices to listen. Can be an ID or a multicast address and port
   # eg.
   # device_ids = ["a","b","c","d"]
-  # device_ids = ["a","b",","d"]
+  # device_ids = ["239.0.2.40:20024"]
   device_ids = ["a","b","c","d"]
   ## Save Tsys, Pcal, and Raw measurments
   ## these are saved into the "rdbe_multicast_*" measurment
