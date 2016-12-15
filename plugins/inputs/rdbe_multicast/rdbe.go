@@ -6,32 +6,28 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/inputs"
-	"github.com/influxdata/telegraf/plugins/parsers"
 )
 
 // RdbeMulticast Based on UDP listener
 type RdbeMulticast struct {
-	DeviceIds              []string
-	AllowedPendingMessages int
-	SaveRaw                bool
+	DeviceIds   []string
+	SaveRaw     bool
+	SavePcal    bool
+	SaveTsys    bool
+	SaveStatstr bool
 
 	sync.Mutex
 	wg sync.WaitGroup
 
 	in   chan []byte
 	done chan struct{}
-	// drops tracks the number of dropped metrics.
-	drops int
-	// malformed tracks the number of malformed packets
-	malformed int
-
-	parser parsers.Parser
 
 	// Keep the accumulator in this struct
 	acc telegraf.Accumulator
@@ -49,9 +45,12 @@ const sampleConfig = `
   # device_ids = ["a","b","c","d"]
   # device_ids = ["a","b",","d"]
   device_ids = ["a","b","c","d"]
-  ## Save raw Tsys and Pcal measurments
-  ## these are saved into the "rdbe_multicast_raw" measurment
+  ## Save Tsys, Pcal, and Raw measurments
+  ## these are saved into the "rdbe_multicast_*" measurment
+  save_pcal = false
+  save_tsys = false
   save_raw = false
+  save_statstr = false
 
   ## Extra tags should be added
   ## eg.
@@ -74,10 +73,6 @@ func (u *RdbeMulticast) Gather(_ telegraf.Accumulator) error {
 	return nil
 }
 
-func (u *RdbeMulticast) SetParser(parser parsers.Parser) {
-	u.parser = parser
-}
-
 func (u *RdbeMulticast) Start(acc telegraf.Accumulator) error {
 	u.Lock()
 	defer u.Unlock()
@@ -91,7 +86,7 @@ func (u *RdbeMulticast) Start(acc telegraf.Accumulator) error {
 		go u.rdbeListen(id)
 	}
 
-	log.Println("Started RDBE Multicast listener service")
+	log.Println("I! Started RDBE Multicast listener service")
 	return nil
 }
 
@@ -100,7 +95,7 @@ func (u *RdbeMulticast) Stop() {
 	defer u.Unlock()
 	close(u.done)
 	u.wg.Wait()
-	log.Println("Stopped RDBE Multicast listener service")
+	log.Println("I! Stopped RDBE Multicast listener service")
 }
 
 type rdbepacket struct {
@@ -110,8 +105,8 @@ type rdbepacket struct {
 	EpochSec      uint32
 	Interval      uint32
 	TsysHeader    [20]byte
-	TsysOn        [64]uint32
-	TsysOff       [64]uint32
+	TsysOn        [64]int32
+	TsysOff       [64]int32
 	PcalHeader    [20]byte
 	PcalIfx       uint16
 	PcalIfxPad    uint16
@@ -159,6 +154,41 @@ func cstr(str []byte) string {
 	return string(str[:n-1])
 }
 
+// Convert a slice to a map, with the keys as zero
+// padded decimal strings.
+//
+// Needed for sorting in InfluxDB
+func intslicetomap(s []int32) map[string]interface{} {
+	m := map[string]interface{}{}
+
+	// Number of digits required to display list
+	slen := int(math.Floor(math.Log10(float64(len(s))))) + 1
+	fmtstr := fmt.Sprintf("%%0%dd", slen)
+	for i := range s {
+		m[fmt.Sprintf(fmtstr, i)] = s[i]
+	}
+	return m
+}
+func byteslicetomap(s []byte) map[string]interface{} {
+	m := map[string]interface{}{}
+
+	// Number of digits required to display list
+	slen := int(math.Floor(math.Log10(float64(len(s))))) + 1
+	fmtstr := fmt.Sprintf("%%0%dd", slen)
+	for i := range s {
+		m[fmt.Sprintf(fmtstr, i)] = s[i]
+	}
+	return m
+}
+
+func copymap(f map[string]string) map[string]string {
+	t := map[string]string{}
+	for k, v := range f {
+		t[k] = v
+	}
+	return t
+}
+
 func (u *RdbeMulticast) rdbeListen(id string) {
 	defer u.wg.Done()
 
@@ -168,13 +198,14 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 	}
 	conn, err := net.ListenMulticastUDP("udp", nil, addr)
 	if err != nil {
-		log.Fatalf("ERROR: ListenUDP - %s\n", err)
+		log.Fatalf("E! ListenUDP - %s\n", err)
 	}
 	defer conn.Close()
-	log.Printf("RDBE Multicast listening to %s\n", conn.RemoteAddr().String())
 
-	var pack rdbepacket
+	log.Printf("I! RDBE Multicast listening to %s\n", addr.String())
+
 	buf := make([]byte, UDP_MAX_PACKET_SIZE)
+	pack := rdbepacket{}
 
 	for {
 		select {
@@ -183,19 +214,20 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 		default:
 			n, err := conn.Read(buf)
 			if err != nil {
-				log.Printf("ERROR: %s\n", err.Error())
+				log.Printf("E! %s\n", err.Error())
 				continue
 			}
+			now := time.Now()
 
 			reader := bytes.NewReader(buf)
 			err = binary.Read(reader, binary.BigEndian, &pack)
 			if err != nil {
-				log.Printf("ERROR: %s\n", err)
+				log.Printf("E! %s\n", err)
 				continue
 			}
 
 			if n != int(pack.PacketSize) {
-				log.Println("ERROR: RDBE got bad packet length")
+				log.Println("E! RDBE got bad packet length")
 				continue
 
 			}
@@ -205,6 +237,7 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 				"pcalifx": fmt.Sprintf("%d", pack.PcalIfx),
 				"rawifx":  fmt.Sprintf("%d", pack.RawIfx),
 			}
+
 			fields := map[string]interface{}{
 				"readtime":  cstr(pack.ReadTime[:]),
 				"epochref":  pack.EpochRef,
@@ -215,19 +248,42 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 				"ppsoffset": pack.PpsOffset,
 				"gpsoffset": pack.GpsOffset,
 			}
-			u.acc.AddFields("rdbe_multicast", fields, tags, time.Now())
+			u.acc.AddFields("rdbe_multicast", fields, tags, now)
 
 			if u.SaveRaw {
-				//TODO: store values in a better way?
+				rawfields := byteslicetomap(pack.RawSamples[:])
+				u.acc.AddFields("rdbe_multicast_raw", rawfields, tags, now)
+			}
+
+			if u.SavePcal {
+				pcalcos := intslicetomap(pack.PcalCos[:])
+				t := copymap(tags)
+				t["component"] = "cos"
+				u.acc.AddFields("rdbe_multicast_pcal", pcalcos, t, now)
+
+				pcalsin := intslicetomap(pack.PcalSin[:])
+				t = copymap(tags)
+				t["component"] = "sin"
+				u.acc.AddFields("rdbe_multicast_pcal", pcalsin, t, now)
+			}
+
+			if u.SaveTsys {
+				fieldsOn := intslicetomap(pack.TsysOn[:])
+				t := copymap(tags)
+				t["cal"] = "on"
+				u.acc.AddFields("rdbe_multicast_tsys", fieldsOn, t, now)
+
+				fieldsOff := intslicetomap(pack.TsysOff[:])
+				t = copymap(tags)
+				t["cal"] = "off"
+				u.acc.AddFields("rdbe_multicast_tsys", fieldsOff, t, now)
+
+			}
+			if u.SaveStatstr {
 				rawfields := map[string]interface{}{
-					"rawsamples": pack.RawSamples,
-					"tsyson":     pack.TsysOn,
-					"tsysoff":    pack.TsysOff,
-					"pcalsin":    pack.PcalSin,
-					"pcalcos":    pack.PcalCos,
-					"statstr":    cstr(pack.StatStr[:]),
+					"statstr": cstr(pack.StatStr[:]),
 				}
-				u.acc.AddFields("rdbe_multicast_raw", rawfields, tags, time.Now())
+				u.acc.AddFields("rdbe_multicast_statstr", rawfields, tags, now)
 			}
 		}
 	}
