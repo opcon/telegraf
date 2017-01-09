@@ -2,6 +2,7 @@ package modbus_antenna
 
 import (
 	"errors"
+	"syscall"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -23,13 +24,15 @@ type ModbusAntenna struct {
 }
 
 var ModbusAntennaConfig = `
-  ## Collect data from a modbus antenna controller 
+  ## modbus antenna controller type
   antenna_type = "patriot12m"
-  # Ip:port
+  ## network address in form ip:port
   address = "192.168.1.22:502"
+  ## modbus slave ID
   #slave_id = 0
   ##Timeout in milliseconds
   #timeout = 10000
+  ## max gap between continuous regisers. Tweaking may improve performance
   #max_gap = 1
 `
 
@@ -65,7 +68,16 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 		numMbuswords := (endaddr - startaddr + 1) * mbuswordsPerWord
 
 		raw, err := a.modbusClient.ReadHoldingRegisters(startaddr, numMbuswords)
-		if err != nil {
+		switch err {
+		case nil:
+			break
+		case syscall.EPIPE, syscall.ECONNRESET, syscall.ETIMEDOUT:
+			err2 := a.initConn()
+			if err2 != nil {
+				return err2
+			}
+			return err
+		default:
 			return err
 		}
 
@@ -87,13 +99,10 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 }
 
 func (a *ModbusAntenna) initAnt() (err error) {
+
 	registers, ok := antennas[a.AntennaType]
 	if !ok {
 		return errors.New("unknown antenna")
-	}
-
-	if a.MaxGap == 0 {
-		a.MaxGap = 1
 	}
 
 	a.groups, err = groupRegisters(registers, uint16(a.MaxGap))
@@ -101,22 +110,25 @@ func (a *ModbusAntenna) initAnt() (err error) {
 		return
 	}
 
+	err = a.initConn()
+
+	a.initDone = true
+	return
+}
+
+func (a *ModbusAntenna) initConn() (err error) {
 	handler := modbus.NewTCPClientHandler(a.Address)
 	handler.SlaveId = byte(a.SlaveId)
-	if a.Timeout == 0 {
-		a.Timeout = 10000
-	}
+
 	handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
 	err = handler.Connect()
 	if err != nil {
 		return
 	}
 	a.modbusClient = modbus.NewClient(handler)
-
-	a.initDone = true
 	return
 }
 
 func init() {
-	inputs.Add("modbus_antenna", func() telegraf.Input { return &ModbusAntenna{} })
+	inputs.Add("modbus_antenna", func() telegraf.Input { return &ModbusAntenna{Timeout: 10000, MaxGap: 1} })
 }
