@@ -2,7 +2,6 @@ package modbus_antenna
 
 import (
 	"errors"
-	"syscall"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -68,16 +67,11 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 		numMbuswords := (endaddr - startaddr + 1) * mbuswordsPerWord
 
 		raw, err := a.modbusClient.ReadHoldingRegisters(startaddr, numMbuswords)
-		switch err {
-		case nil:
-			break
-		case syscall.EPIPE, syscall.ECONNRESET, syscall.ETIMEDOUT:
+		if err != nil {
 			err2 := a.initConn()
 			if err2 != nil {
 				return err2
 			}
-			return err
-		default:
 			return err
 		}
 
