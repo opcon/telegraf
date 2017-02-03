@@ -62,8 +62,12 @@ func (s *FieldSystem) Start(acc telegraf.Accumulator) (err error) {
 
 	// FS semephores
 
-	for _, semname := range s.fs.Semaphores() {
-		s.watch(fsMeas, semname, func() (interface{}, error) { return s.fs.SemLocked(semname) })
+	sems := s.fs.Semaphores()
+	for i := range sems {
+		semname := sems[i]
+		s.watch(fsMeas, semname, func() (interface{}, error) {
+			return s.fs.SemLocked(semname)
+		})
 	}
 
 	// FS bools
