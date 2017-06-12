@@ -15,26 +15,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
 
-// RdbeMulticast Based on UDP listener
-type RdbeMulticast struct {
-	DeviceIds   []string
-	SaveRaw     bool
-	SavePcal    bool
-	SaveTsys    bool
-	SaveStatstr bool
-
-	sync.Mutex
-	wg sync.WaitGroup
-
-	in   chan []byte
-	done chan struct{}
-
-	// Keep the accumulator in this struct
-	acc telegraf.Accumulator
-
-	listeners map[string]*net.UDPConn
-}
-
 // UDP_MAX_PACKET_SIZE UDP packet limit, see
 // https://en.wikipedia.org/wiki/User_Datagram_Protocol#Packet_structure
 const UDP_MAX_PACKET_SIZE int = 64 * 1024
@@ -59,45 +39,7 @@ const sampleConfig = `
   #  foo = "bar"
 `
 
-func (u *RdbeMulticast) SampleConfig() string {
-	return sampleConfig
-}
-
-func (u *RdbeMulticast) Description() string {
-	return "RDBE UDP Multicast listener"
-}
-
-// All the work is done in the Start() function, so this is just a dummy
-// function.
-func (u *RdbeMulticast) Gather(_ telegraf.Accumulator) error {
-	return nil
-}
-
-func (u *RdbeMulticast) Start(acc telegraf.Accumulator) error {
-	u.Lock()
-	defer u.Unlock()
-
-	u.acc = acc
-	u.done = make(chan struct{})
-	u.listeners = make(map[string]*net.UDPConn)
-
-	for _, id := range u.DeviceIds {
-		u.wg.Add(1)
-		go u.rdbeListen(id)
-	}
-
-	log.Println("I! Started RDBE Multicast listener service")
-	return nil
-}
-
-func (u *RdbeMulticast) Stop() {
-	u.Lock()
-	defer u.Unlock()
-	close(u.done)
-	u.wg.Wait()
-	log.Println("I! Stopped RDBE Multicast listener service")
-}
-
+// layout of RDBE packet
 type rdbepacket struct {
 	ReadTime      [20]byte
 	PacketSize    uint16
@@ -145,8 +87,8 @@ func broadcastAddress(id string) (*net.UDPAddr, error) {
 }
 
 func cstr(str []byte) string {
-	n := 0
-	for ; str[n] != 0; n++ {
+	var n int
+	for n = 0; str[n] != 0; n++ {
 	}
 	if n == 0 {
 		return ""
@@ -169,6 +111,7 @@ func intslicetomap(s []int32) map[string]interface{} {
 	}
 	return m
 }
+
 func byteslicetomap(s []byte) map[string]interface{} {
 	m := map[string]interface{}{}
 
@@ -189,16 +132,87 @@ func copymap(f map[string]string) map[string]string {
 	return t
 }
 
+// RdbeMulticast Based on UDP listener
+type RdbeMulticast struct {
+	DeviceIds   []string
+	SaveRaw     bool
+	SavePcal    bool
+	SaveTsys    bool
+	SaveStatstr bool
+
+	in   chan []byte
+	done chan struct{}
+
+	listeners map[string]*net.UDPConn
+
+	// Keep the accumulator in this struct
+	telegraf.Accumulator
+
+	sync.Mutex
+	wg sync.WaitGroup
+}
+
+func (u *RdbeMulticast) SampleConfig() string {
+	return sampleConfig
+}
+
+func (u *RdbeMulticast) Description() string {
+	return "RDBE UDP Multicast listener"
+}
+
+// All the work is done in the Start() function, so this is just a dummy to satisfy the interface
+func (u *RdbeMulticast) Gather(_ telegraf.Accumulator) error {
+	return nil
+}
+
+func (u *RdbeMulticast) Start(acc telegraf.Accumulator) error {
+	u.Lock()
+	defer u.Unlock()
+
+	u.Accumulator = acc
+	u.done = make(chan struct{})
+	u.listeners = make(map[string]*net.UDPConn)
+
+	for _, id := range u.DeviceIds {
+		u.wg.Add(1)
+		go u.rdbeListen(id)
+	}
+
+	log.Println("I! Started RDBE Multicast listener service")
+	return nil
+}
+
+func (u *RdbeMulticast) Stop() {
+	u.Lock()
+	defer u.Unlock()
+	close(u.done)
+	u.wg.Wait()
+	log.Println("I! Stopped RDBE Multicast listener service")
+}
+
 func (u *RdbeMulticast) rdbeListen(id string) {
 	defer u.wg.Done()
 
 	addr, err := broadcastAddress(id)
 	if err != nil {
-		log.Fatal(err)
+		u.AddError(fmt.Errorf("unable to construct address from \"%s\": %s", id, err))
+		return
 	}
-	conn, err := net.ListenMulticastUDP("udp", nil, addr)
-	if err != nil {
-		log.Fatalf("E! ListenUDP - %s\n", err)
+
+	var conn *net.UDPConn
+conloop:
+	for {
+		select {
+		case <-u.done:
+			return
+		case <-time.Tick(60 * time.Second):
+			conn, err := net.ListenMulticastUDP("udp", nil, addr)
+			if err != nil {
+				u.AddError(fmt.Errorf("unable to start UDP listener: %s", err))
+				continue
+			}
+			break
+		}
 	}
 	defer conn.Close()
 
@@ -214,7 +228,7 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 		default:
 			n, err := conn.Read(buf)
 			if err != nil {
-				log.Printf("E! %s\n", err.Error())
+				u.AddError(fmt.Errorf("unable to read from conn: %s", err))
 				continue
 			}
 			now := time.Now()
@@ -222,14 +236,13 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 			reader := bytes.NewReader(buf)
 			err = binary.Read(reader, binary.BigEndian, &pack)
 			if err != nil {
-				log.Printf("E! %s\n", err)
+				u.AddError(fmt.Errorf("unable to unpack RDBE packet: %s", err))
 				continue
 			}
 
 			if n != int(pack.PacketSize) {
-				log.Println("E! RDBE got bad packet length")
+				u.AddError(fmt.Errorf("bad RDBE packet length"))
 				continue
-
 			}
 
 			tags := map[string]string{
@@ -248,42 +261,42 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 				"ppsoffset": pack.PpsOffset,
 				"gpsoffset": pack.GpsOffset,
 			}
-			u.acc.AddFields("rdbe_multicast", fields, tags, now)
+			u.AddFields("rdbe_multicast", fields, tags, now)
 
 			if u.SaveRaw {
 				rawfields := byteslicetomap(pack.RawSamples[:])
-				u.acc.AddFields("rdbe_multicast_raw", rawfields, tags, now)
+				u.AddFields("rdbe_multicast_raw", rawfields, tags, now)
 			}
 
 			if u.SavePcal {
 				pcalcos := intslicetomap(pack.PcalCos[:])
 				t := copymap(tags)
 				t["component"] = "cos"
-				u.acc.AddFields("rdbe_multicast_pcal", pcalcos, t, now)
+				u.AddFields("rdbe_multicast_pcal", pcalcos, t, now)
 
 				pcalsin := intslicetomap(pack.PcalSin[:])
 				t = copymap(tags)
 				t["component"] = "sin"
-				u.acc.AddFields("rdbe_multicast_pcal", pcalsin, t, now)
+				u.AddFields("rdbe_multicast_pcal", pcalsin, t, now)
 			}
 
 			if u.SaveTsys {
 				fieldsOn := intslicetomap(pack.TsysOn[:])
 				t := copymap(tags)
 				t["cal"] = "on"
-				u.acc.AddFields("rdbe_multicast_tsys", fieldsOn, t, now)
+				u.AddFields("rdbe_multicast_tsys", fieldsOn, t, now)
 
 				fieldsOff := intslicetomap(pack.TsysOff[:])
 				t = copymap(tags)
 				t["cal"] = "off"
-				u.acc.AddFields("rdbe_multicast_tsys", fieldsOff, t, now)
+				u.AddFields("rdbe_multicast_tsys", fieldsOff, t, now)
 
 			}
 			if u.SaveStatstr {
 				rawfields := map[string]interface{}{
 					"statstr": cstr(pack.StatStr[:]),
 				}
-				u.acc.AddFields("rdbe_multicast_statstr", rawfields, tags, now)
+				u.AddFields("rdbe_multicast_statstr", rawfields, tags, now)
 			}
 		}
 	}
