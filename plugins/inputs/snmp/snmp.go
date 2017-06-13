@@ -168,6 +168,9 @@ type Table struct {
 	// Which tags to inherit from the top-level config.
 	InheritTags []string
 
+	// Adds each row's table index as a tag.
+	IndexAsTag bool
+
 	// Fields is the tags and values to look up.
 	Fields []Field `toml:"field"`
 
@@ -311,6 +314,7 @@ func Errorf(err error, msg string, format ...interface{}) error {
 func init() {
 	inputs.Add("snmp", func() telegraf.Input {
 		return &Snmp{
+			Name:           "snmp",
 			Retries:        3,
 			MaxRepetitions: 10,
 			Timeout:        internal.Duration{Duration: 5 * time.Second},
@@ -433,9 +437,7 @@ func (t Table) Build(gs snmpConnection, walk bool) (*RTable, error) {
 				if err != nil {
 					return nil, Errorf(err, "converting %q (OID %s) for field %s", ent.Value, ent.Name, f.Name)
 				}
-				if fvs, ok := fv.(string); !ok || fvs != "" {
-					ifv[""] = fv
-				}
+				ifv[""] = fv
 			}
 		} else {
 			err := gs.Walk(oid, func(ent gosnmp.SnmpPDU) error {
@@ -456,9 +458,7 @@ func (t Table) Build(gs snmpConnection, walk bool) (*RTable, error) {
 				if err != nil {
 					return Errorf(err, "converting %q (OID %s) for field %s", ent.Value, ent.Name, f.Name)
 				}
-				if fvs, ok := fv.(string); !ok || fvs != "" {
-					ifv[idx] = fv
-				}
+				ifv[idx] = fv
 				return nil
 			})
 			if err != nil {
@@ -468,22 +468,31 @@ func (t Table) Build(gs snmpConnection, walk bool) (*RTable, error) {
 			}
 		}
 
-		for i, v := range ifv {
-			rtr, ok := rows[i]
+		for idx, v := range ifv {
+			rtr, ok := rows[idx]
 			if !ok {
 				rtr = RTableRow{}
 				rtr.Tags = map[string]string{}
 				rtr.Fields = map[string]interface{}{}
-				rows[i] = rtr
+				rows[idx] = rtr
 			}
-			if f.IsTag {
-				if vs, ok := v.(string); ok {
-					rtr.Tags[f.Name] = vs
-				} else {
-					rtr.Tags[f.Name] = fmt.Sprintf("%v", v)
+			if t.IndexAsTag && idx != "" {
+				if idx[0] == '.' {
+					idx = idx[1:]
 				}
-			} else {
-				rtr.Fields[f.Name] = v
+				rtr.Tags["index"] = idx
+			}
+			// don't add an empty string
+			if vs, ok := v.(string); !ok || vs != "" {
+				if f.IsTag {
+					if ok {
+						rtr.Tags[f.Name] = vs
+					} else {
+						rtr.Tags[f.Name] = fmt.Sprintf("%v", v)
+					}
+				} else {
+					rtr.Fields[f.Name] = v
+				}
 			}
 		}
 	}
@@ -494,10 +503,6 @@ func (t Table) Build(gs snmpConnection, walk bool) (*RTable, error) {
 		Rows: make([]RTableRow, 0, len(rows)),
 	}
 	for _, r := range rows {
-		if len(r.Tags) < tagCount {
-			// don't add rows which are missing tags, as without tags you can't filter
-			continue
-		}
 		rt.Rows = append(rt.Rows, r)
 	}
 	return &rt, nil
