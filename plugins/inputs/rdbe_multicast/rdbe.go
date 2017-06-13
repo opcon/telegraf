@@ -199,19 +199,23 @@ func (u *RdbeMulticast) rdbeListen(id string) {
 		return
 	}
 
-	var conn *net.UDPConn
-conloop:
-	for {
-		select {
-		case <-u.done:
-			return
-		case <-time.Tick(60 * time.Second):
-			conn, err := net.ListenMulticastUDP("udp", nil, addr)
-			if err != nil {
-				u.AddError(fmt.Errorf("unable to start UDP listener: %s", err))
-				continue
+	conn, err := net.ListenMulticastUDP("udp", nil, addr)
+	if err != nil {
+		u.AddError(fmt.Errorf("unable to start UDP listener: %s", err))
+		// This likely means the network isn't ready.  Loop until it comes up:
+	conloop:
+		for {
+			select {
+			case <-u.done:
+				return
+			case <-time.Tick(60 * time.Second):
+				conn, err = net.ListenMulticastUDP("udp", nil, addr)
+				if err != nil {
+					u.AddError(fmt.Errorf("unable to start UDP listener: %s", err))
+					continue
+				}
+				break conloop
 			}
-			break
 		}
 	}
 	defer conn.Close()
