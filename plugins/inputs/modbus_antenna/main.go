@@ -17,9 +17,8 @@ type ModbusAntenna struct {
 	Timeout     int
 	MaxGap      int
 
-	initDone     bool
-	groups       [][]register
-	modbusClient modbus.Client
+	initDone bool
+	groups   [][]register
 }
 
 var ModbusAntennaConfig = `
@@ -45,7 +44,7 @@ func (a *ModbusAntenna) Description() string {
 
 func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 	var err error
-	if a.initDone == false {
+	if !a.initDone {
 		err = a.initAnt()
 		if err != nil {
 			return err
@@ -53,6 +52,16 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 	}
 
 	fields := make(map[string]interface{})
+
+	handler := modbus.NewTCPClientHandler(a.Address)
+	handler.SlaveId = byte(a.SlaveId)
+	handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
+	err = handler.Connect()
+	if err != nil {
+		return err
+	}
+	defer handler.Close()
+	modbusClient := modbus.NewClient(handler)
 
 	for _, group := range a.groups {
 		startaddr := uint16(group[0].addr)
@@ -66,12 +75,10 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 		const mbuswordsPerWord = 2
 		numMbuswords := (endaddr - startaddr + 1) * mbuswordsPerWord
 
-		raw, err := a.modbusClient.ReadHoldingRegisters(startaddr, numMbuswords)
+		// log.Println("I!: ", a.modbusClient, startaddr, numMbuswords)
+
+		raw, err := modbusClient.ReadHoldingRegisters(startaddr, numMbuswords)
 		if err != nil {
-			err2 := a.initConn()
-			if err2 != nil {
-				return err2
-			}
 			return err
 		}
 
@@ -104,22 +111,7 @@ func (a *ModbusAntenna) initAnt() (err error) {
 		return
 	}
 
-	err = a.initConn()
-
 	a.initDone = true
-	return
-}
-
-func (a *ModbusAntenna) initConn() (err error) {
-	handler := modbus.NewTCPClientHandler(a.Address)
-	handler.SlaveId = byte(a.SlaveId)
-
-	handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
-	err = handler.Connect()
-	if err != nil {
-		return
-	}
-	a.modbusClient = modbus.NewClient(handler)
 	return
 }
 

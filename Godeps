@@ -63,5 +63,5 @@ gopkg.in/fatih/pool.v2 6e328e67893eb46323ad06f0e92cb9536babbabc
 gopkg.in/mgo.v2 3f83fa5005286a7fe593b055f0d7771a7dce4655
 gopkg.in/olivere/elastic.v5 ee3ebceab960cf68ab9a89ee6d78c031ef5b4a4e
 gopkg.in/yaml.v2 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
-github.com/goburrow/modbus f7afd8db7d8dabd9f1cd3a9e2a9cb289ed6ac08a
-github.com/goburrow/serial 1b57be761cd3a66492333e9367a23c0869f9cc2e
+github.com/goburrow/modbus 9ffe737f567a07534d91277866779e28145440e0
+github.com/goburrow/serial d490ecc9d6a1cbca2d67306da4d9f5fb734ba5af
