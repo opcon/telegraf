@@ -24,18 +24,12 @@ function install_chkconfig {
     chkconfig --add telegraf
 }
 
-if ! grep "^telegraf:" /etc/group &>/dev/null; then
+if ! grep -q "^telegraf:" /etc/group &>/dev/null; then
     groupadd -r telegraf
 fi
 
 if ! id telegraf &>/dev/null; then
-    if useradd -h 2>&1 | grep -q '^[[:space:]]*-M';  then
-        # Newer version of useradd have -M option to force not creating home dir
-        useradd -r -K USERGROUPS_ENAB=yes -M telegraf -s /bin/false -d /etc/telegraf
-    else
-        # Older version does not create home dir by default
-        useradd -r -K USERGROUPS_ENAB=yes telegraf -s /bin/false -d /etc/telegraf
-    fi
+    useradd -r -K USERGROUPS_ENAB=yes telegraf -g telegraf -s /bin/false -d /etc/telegraf
 fi
 
 test -d $LOG_DIR || mkdir -p $LOG_DIR
