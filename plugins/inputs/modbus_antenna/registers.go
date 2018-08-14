@@ -1,4 +1,4 @@
-package modbus_antenna
+package modbusAntenna
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 type register struct {
 	addr   uint16
 	label  string
-	filter func(string, []byte) map[string]interface{}
+	decode func(string, []byte) map[string]interface{}
 }
 
 // Group continuous registers together
@@ -18,22 +18,22 @@ func groupRegisters(registers []register, maxgap uint16) ([][]register, error) {
 	if len(registers) == 0 {
 		return nil, errors.New("empty list")
 	}
-	expect_addr := uint16(0)
+	expectAddr := uint16(0)
 	groups := make([][]register, 0, len(registers))
 	group := make([]register, 0, len(registers))
 
 	for i, reg := range registers {
-		if reg.addr < expect_addr {
+		if reg.addr < expectAddr {
 			return nil, errors.New("registers list not strictly increasing")
 		}
-		if i == 0 || reg.addr-expect_addr <= maxgap {
+		if i == 0 || reg.addr-expectAddr <= maxgap {
 			group = append(group, reg)
 		} else {
 			groups = append(groups, group)
 			group = make([]register, 0, len(registers))
 			group = append(group, reg)
 		}
-		expect_addr = reg.addr + 1
+		expectAddr = reg.addr + 1
 	}
 	groups = append(groups, group)
 	return groups, nil

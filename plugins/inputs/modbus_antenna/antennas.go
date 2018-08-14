@@ -1,5 +1,5 @@
-package modbus_antenna
+package modbusAntenna
 
-var antennas map[string][]register = map[string][]register{
+var antennas = map[string][]register{
 	"patriot12m": patriot12m,
 }
