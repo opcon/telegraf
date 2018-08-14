@@ -1,20 +1,20 @@
-package modbus_antenna
+package modbusAntenna
 
 import (
 	"bytes"
 	"encoding/binary"
 )
 
-var patriot12m []register = []register{
+var patriot12m = []register{
 	{18215, "PowerContactorAux", integer},
 	{18401, "ConnectionFilter", integer},
 	{18402, "AzimuthStowEnable", integer},
 	{18403, "UT1TimeOffset", integer},
-	{18410, "AntennaLatitude", p12_fixedpt},
-	{18411, "AntennaLongitude", p12_fixedpt},
+	{18410, "AntennaLatitude", fixedPoint},
+	{18411, "AntennaLongitude", fixedPoint},
 	{18412, "AntennaSiteElevation", integer},
-	{18413, "AzimuthStowAngle", p12_fixedpt},
-	{18414, "ElevationStowAngle", p12_fixedpt},
+	{18413, "AzimuthStowAngle", fixedPoint},
+	{18414, "ElevationStowAngle", fixedPoint},
 	{18415, "PointCorr1", integer},
 	{18416, "PointCorr2", integer},
 	{18417, "PointCorr3", integer},
@@ -24,7 +24,7 @@ var patriot12m []register = []register{
 	{18421, "PointCorr7", integer},
 	{18422, "PointCorr8", integer},
 	{18423, "PointCorr9", integer},
-	{23383, "CentralStatus", p12_central},
+	{23383, "CentralStatus", p12Central},
 	{23384, "PowerSwitch", integer},
 	{23385, "RunControl", integer},
 	{23386, "RunMode", integer},
@@ -33,8 +33,8 @@ var patriot12m []register = []register{
 	{23389, "Reboot", integer},
 	{23390, "Stow", integer},
 	{23391, "CorrectionDisable", integer},
-	{23394, "AzRaTrackPoint", p12_fixedpt},
-	{23395, "ElDecTrackPoint", p12_fixedpt},
+	{23394, "AzRaTrackPoint", fixedPoint},
+	{23395, "ElDecTrackPoint", fixedPoint},
 	{23397, "TimeTrackPoint", integer},
 	{23398, "DayTrackPoint", integer},
 	{23399, "DataMode", integer},
@@ -42,48 +42,48 @@ var patriot12m []register = []register{
 	{23401, "TrackDataSource", integer},
 	{23402, "RADecOffsetMode", integer},
 	{23403, "NumberOfUnexpiredPoints", integer},
-	{23404, "AzimuthPosition", p12_fixedpt},
-	{23405, "ElevationPosition", p12_fixedpt},
-	{23406, "AzRAPosition", p12_fixedpt},
-	{23407, "ElDecPosition", p12_fixedpt},
-	{23408, "RAOffset", p12_fixedpt},
-	{23409, "DecOffset", p12_fixedpt},
-	{23410, "RAVirtualAxis", p12_fixedpt},
-	{23411, "DecVirtualAxis", p12_fixedpt},
+	{23404, "AzimuthPosition", fixedPoint},
+	{23405, "ElevationPosition", fixedPoint},
+	{23406, "AzRAPosition", fixedPoint},
+	{23407, "ElDecPosition", fixedPoint},
+	{23408, "RAOffset", fixedPoint},
+	{23409, "DecOffset", fixedPoint},
+	{23410, "RAVirtualAxis", fixedPoint},
+	{23411, "DecVirtualAxis", fixedPoint},
 	{23412, "FlushTrackArray", integer},
-	{23418, "RampAzRA", p12_fixedpt},
-	{23419, "RampElDec", p12_fixedpt},
-	{23420, "RampAzRAVelocity", p12_fixedpt},
-	{23421, "RampElDecVelocity", p12_fixedpt},
+	{23418, "RampAzRA", fixedPoint},
+	{23419, "RampElDec", fixedPoint},
+	{23420, "RampAzRAVelocity", fixedPoint},
+	{23421, "RampElDecVelocity", fixedPoint},
 	{23422, "RampEpochTime", integer},
 	{23423, "RampEpochDay", integer},
 	{23424, "AzElOffsetMode", integer},
-	{23425, "AzOffset", p12_fixedpt},
-	{23426, "ElOffset", p12_fixedpt},
+	{23425, "AzOffset", fixedPoint},
+	{23426, "ElOffset", fixedPoint},
 	{23428, "TimeoutReset", integer},
 	{23429, "TimeoutDisable", integer},
 	{23434, "SNTPTime", integer},
 	{23435, "SystemClockms", integer},
 	{23436, "SystemClockMJDay", integer},
-	{23584, "AzimuthPositionCorrected", p12_fixedpt},
-	{23585, "AzimuthVelocity", p12_fixedpt},
-	{23586, "AzimuthPosOffset", p12_fixedpt},
-	{23588, "AzimuthVirtualAxis", p12_fixedpt},
-	{23604, "ElevationPositionCorrected", p12_fixedpt},
-	{23605, "ElevationVelocity", p12_fixedpt},
-	{23606, "ElevationPosOffset", p12_fixedpt},
-	{23608, "ElevationVirtualAxis", p12_fixedpt},
-	{23683, "AzimuthMasterStatus", p12_azmaster},
-	{23684, "Azimuth1", p12_fixedpt},
-	{23685, "AzimuthError1", p12_fixedpt},
-	{23686, "AzimuthFeedbackVelocity", p12_fixedpt},
+	{23584, "AzimuthPositionCorrected", fixedPoint},
+	{23585, "AzimuthVelocity", fixedPoint},
+	{23586, "AzimuthPosOffset", fixedPoint},
+	{23588, "AzimuthVirtualAxis", fixedPoint},
+	{23604, "ElevationPositionCorrected", fixedPoint},
+	{23605, "ElevationVelocity", fixedPoint},
+	{23606, "ElevationPosOffset", fixedPoint},
+	{23608, "ElevationVirtualAxis", fixedPoint},
+	{23683, "AzimuthMasterStatus", p12Azmaster},
+	{23684, "Azimuth1", fixedPoint},
+	{23685, "AzimuthError1", fixedPoint},
+	{23686, "AzimuthFeedbackVelocity", fixedPoint},
 	{23687, "AzimuthMotorCurrent", integer},
-	{23693, "AzimuthSlaveStatus", p12_azslave},
+	{23693, "AzimuthSlaveStatus", p12Azslave},
 	{23694, "AzimuthSlaveMotorCurrent", integer},
-	{23703, "ElevationStatus", p12_elmaster},
-	{23704, "Elevation1", p12_fixedpt},
-	{23705, "ElevationError1", p12_fixedpt},
-	{23706, "ElevationFeedbackVelocity", p12_fixedpt},
+	{23703, "ElevationStatus", p12Elmaster},
+	{23704, "Elevation1", fixedPoint},
+	{23705, "ElevationError1", fixedPoint},
+	{23706, "ElevationFeedbackVelocity", fixedPoint},
 	{23707, "ElevationMotorCurrent", integer},
 	{25184, "RestartCentral", integer},
 }
@@ -92,7 +92,7 @@ var patriot12m []register = []register{
 
 // Interpret registers as a real values stored as a fixed-point number,
 // encoded in a big-endian 32bit with a scaling factor of 1/10000
-func p12_fixedpt(name string, rawval []byte) map[string]interface{} {
+func fixedPoint(name string, rawval []byte) map[string]interface{} {
 	var val int32
 	reader := bytes.NewReader(rawval)
 	err := binary.Read(reader, binary.BigEndian, &val)
@@ -104,7 +104,7 @@ func p12_fixedpt(name string, rawval []byte) map[string]interface{} {
 }
 
 // Azimuth Master Drive status bits
-func p12_azmaster(name string, rawval []byte) map[string]interface{} {
+func p12Azmaster(name string, rawval []byte) map[string]interface{} {
 	const (
 		AzimuthDriveHealthy = 1 << iota
 		AzimuthDriveEnergized
@@ -166,7 +166,7 @@ func p12_azmaster(name string, rawval []byte) map[string]interface{} {
 }
 
 // Azimuth Slave Drive status bits
-func p12_azslave(name string, rawval []byte) map[string]interface{} {
+func p12Azslave(name string, rawval []byte) map[string]interface{} {
 	const (
 		AzimuthSlaveDriveHealthy = 1 << iota
 		AzimuthSlaveDriveEnergized
@@ -193,7 +193,7 @@ func p12_azslave(name string, rawval []byte) map[string]interface{} {
 }
 
 // Central status bits
-func p12_central(name string, rawval []byte) map[string]interface{} {
+func p12Central(name string, rawval []byte) map[string]interface{} {
 	const (
 		//byte 0
 		CentralPowerContactorAux = 1 << iota
@@ -271,7 +271,7 @@ func p12_central(name string, rawval []byte) map[string]interface{} {
 }
 
 // Elevation Drive status bits
-func p12_elmaster(name string, rawval []byte) map[string]interface{} {
+func p12Elmaster(name string, rawval []byte) map[string]interface{} {
 	const (
 		// byte 0
 		ElevationDriveHealthy = 1 << iota

@@ -1,4 +1,4 @@
-package modbus_antenna
+package modbusAntenna
 
 import (
 	"errors"
@@ -10,10 +10,9 @@ import (
 	"github.com/goburrow/modbus"
 )
 
-type ModbusAntenna struct {
+type modbusAntenna struct {
 	AntennaType string
 	Address     string
-	SlaveId     int
 	Timeout     int
 	MaxGap      int
 
@@ -21,7 +20,7 @@ type ModbusAntenna struct {
 	groups   [][]register
 }
 
-var ModbusAntennaConfig = `
+var modbusAntennaConfig = `
   ## modbus antenna controller type
   antenna_type = "patriot12m"
   ## network address in form ip:port
@@ -34,15 +33,15 @@ var ModbusAntennaConfig = `
   #max_gap = 1
 `
 
-func (a *ModbusAntenna) SampleConfig() string {
-	return ModbusAntennaConfig
+func (a *modbusAntenna) SampleConfig() string {
+	return modbusAntennaConfig
 }
 
-func (a *ModbusAntenna) Description() string {
+func (a *modbusAntenna) Description() string {
 	return "Query an antenna controller using modbus over TCP. Registers are assumed to be 32bits wide."
 }
 
-func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
+func (a *modbusAntenna) Gather(acc telegraf.Accumulator) error {
 	var err error
 	if !a.initDone {
 		err = a.initAnt()
@@ -54,7 +53,7 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 	fields := make(map[string]interface{})
 
 	handler := modbus.NewTCPClientHandler(a.Address)
-	handler.SlaveId = byte(a.SlaveId)
+	handler.SlaveId = 0
 	handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
 	err = handler.Connect()
 	if err != nil {
@@ -87,7 +86,7 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 			// Do not assume the group is continuous
 			const bytesPerWord = 4
 			pos := (register.addr - startaddr) * bytesPerWord
-			filtoutput := register.filter(register.label, raw[pos:pos+bytesPerWord])
+			filtoutput := register.decode(register.label, raw[pos:pos+bytesPerWord])
 
 			// Merge
 			for k, v := range filtoutput {
@@ -99,7 +98,7 @@ func (a *ModbusAntenna) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func (a *ModbusAntenna) initAnt() (err error) {
+func (a *modbusAntenna) initAnt() (err error) {
 
 	registers, ok := antennas[a.AntennaType]
 	if !ok {
@@ -116,5 +115,5 @@ func (a *ModbusAntenna) initAnt() (err error) {
 }
 
 func init() {
-	inputs.Add("modbus_antenna", func() telegraf.Input { return &ModbusAntenna{Timeout: 10000, MaxGap: 1} })
+	inputs.Add("modbus_antenna", func() telegraf.Input { return &modbusAntenna{Timeout: 10000, MaxGap: 1} })
 }
