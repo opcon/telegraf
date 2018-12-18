@@ -5,14 +5,15 @@ package varnish
 import (
 	"bytes"
 	"fmt"
-	"github.com/influxdata/telegraf/testutil"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/influxdata/telegraf/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
-func fakeVarnishStat(output string) func(string) (*bytes.Buffer, error) {
-	return func(string) (*bytes.Buffer, error) {
+func fakeVarnishStat(output string, useSudo bool, InstanceName string) func(string, bool, string) (*bytes.Buffer, error) {
+	return func(string, bool, string) (*bytes.Buffer, error) {
 		return bytes.NewBuffer([]byte(output)), nil
 	}
 }
@@ -20,7 +21,7 @@ func fakeVarnishStat(output string) func(string) (*bytes.Buffer, error) {
 func TestGather(t *testing.T) {
 	acc := &testutil.Accumulator{}
 	v := &Varnish{
-		run:   fakeVarnishStat(smOutput),
+		run:   fakeVarnishStat(smOutput, false, ""),
 		Stats: []string{"*"},
 	}
 	v.Gather(acc)
@@ -36,7 +37,7 @@ func TestGather(t *testing.T) {
 func TestParseFullOutput(t *testing.T) {
 	acc := &testutil.Accumulator{}
 	v := &Varnish{
-		run:   fakeVarnishStat(fullOutput),
+		run:   fakeVarnishStat(fullOutput, true, ""),
 		Stats: []string{"*"},
 	}
 	err := v.Gather(acc)
@@ -51,7 +52,7 @@ func TestParseFullOutput(t *testing.T) {
 func TestFilterSomeStats(t *testing.T) {
 	acc := &testutil.Accumulator{}
 	v := &Varnish{
-		run:   fakeVarnishStat(fullOutput),
+		run:   fakeVarnishStat(fullOutput, false, ""),
 		Stats: []string{"MGT.*", "VBE.*"},
 	}
 	err := v.Gather(acc)
@@ -74,7 +75,7 @@ func TestFieldConfig(t *testing.T) {
 	for fieldCfg, expected := range expect {
 		acc := &testutil.Accumulator{}
 		v := &Varnish{
-			run:   fakeVarnishStat(fullOutput),
+			run:   fakeVarnishStat(fullOutput, true, ""),
 			Stats: strings.Split(fieldCfg, ","),
 		}
 		err := v.Gather(acc)
@@ -112,16 +113,16 @@ MEMPOOL.vbc.sz_wanted              88          .   Size requested
 `
 
 var parsedSmOutput = map[string]map[string]interface{}{
-	"MAIN": map[string]interface{}{
+	"MAIN": {
 		"uptime":     uint64(895),
 		"cache_hit":  uint64(95),
 		"cache_miss": uint64(5),
 	},
-	"MGT": map[string]interface{}{
+	"MGT": {
 		"uptime":      uint64(896),
 		"child_start": uint64(1),
 	},
-	"MEMPOOL": map[string]interface{}{
+	"MEMPOOL": {
 		"vbc.live":      uint64(0),
 		"vbc.pool":      uint64(10),
 		"vbc.sz_wanted": uint64(88),

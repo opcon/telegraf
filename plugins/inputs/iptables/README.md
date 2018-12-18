@@ -45,6 +45,8 @@ Defining multiple instances of this plugin in telegraf.conf can lead to concurre
   use_sudo = false
   # run iptables with the lock option
   use_lock = false
+  # Define an alternate executable, such as "ip6tables". Default is "iptables".
+  # binary = "ip6tables"
   # defines the table to monitor:
   table = "filter"
   # defines the chains to monitor:
@@ -78,7 +80,7 @@ pkts bytes target     prot opt in     out     source               destination
 ```
 
 ```
-$ ./telegraf -config telegraf.conf -input-filter iptables -test
+$ ./telegraf --config telegraf.conf --input-filter iptables --test
 iptables,table=filter,chain=INPUT,ruleid=ssh pkts=100i,bytes=1024i 1453831884664956455
 iptables,table=filter,chain=INPUT,ruleid=httpd pkts=42i,bytes=2048i 1453831884664956455
 ```

@@ -24,12 +24,12 @@ function install_chkconfig {
     chkconfig --add telegraf
 }
 
-if ! grep -q "^telegraf:" /etc/group &>/dev/null; then
+if ! grep "^telegraf:" /etc/group &>/dev/null; then
     groupadd -r telegraf
 fi
 
 if ! id telegraf &>/dev/null; then
-    useradd -r -K USERGROUPS_ENAB=yes telegraf -g telegraf -s /bin/false -d /etc/telegraf
+    useradd -r -M telegraf -s /bin/false -d /etc/telegraf -g telegraf
 fi
 
 test -d $LOG_DIR || mkdir -p $LOG_DIR
@@ -74,7 +74,7 @@ elif [[ -f /etc/debian_version ]]; then
     # Debian/Ubuntu logic
     if [[ "$(readlink /proc/1/exe)" == */systemd ]]; then
         install_systemd /lib/systemd/system/telegraf.service
-        systemctl restart telegraf || echo "WARNING: systemd not running."
+        deb-systemd-invoke restart telegraf.service || echo "WARNING: systemd not running."
     else
         # Assuming SysVinit
         install_init
@@ -97,6 +97,5 @@ elif [[ -f /etc/os-release ]]; then
         else
             install_chkconfig
         fi
-        /etc/init.d/telegraf restart
     fi
 fi
