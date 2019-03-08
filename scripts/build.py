@@ -17,8 +17,7 @@ import argparse
 ################
 
 # Packaging variables
-PACKAGE_NAME = "telegraf-vlbi"
-CONFLICTS = "telegraf"
+PACKAGE_NAME = "telegraf"
 INSTALL_ROOT_DIR = "/usr/bin"
 LOG_DIR = "/var/log/telegraf"
 SCRIPT_DIR = "/usr/lib/telegraf/scripts"
@@ -67,8 +66,7 @@ fpm_common_args = "-f -s dir --log error \
  --before-install {} \
  --after-remove {} \
  --before-remove {} \
- --description \"{}\" \
- --conflicts {}".format(
+ --description \"{}\"".format(
     VENDOR,
     PACKAGE_URL,
     PACKAGE_LICENSE,
@@ -79,23 +77,25 @@ fpm_common_args = "-f -s dir --log error \
     PREINST_SCRIPT,
     POSTREMOVE_SCRIPT,
     PREREMOVE_SCRIPT,
-    DESCRIPTION,
-    CONFLICTS,
-)
+    DESCRIPTION)
 
 targets = {
     'telegraf' : './cmd/telegraf',
 }
 
 supported_builds = {
-    "linux": [ "amd64", "i386"],
+    "windows": [ "amd64", "i386" ],
+    "linux": [ "amd64", "i386", "armhf", "armel", "arm64", "static_amd64", "s390x", "mipsel"],
+    "freebsd": [ "amd64", "i386" ]
 }
 
 supported_packages = {
-    "linux": [ "deb", "tar" ],
+    "linux": [ "deb", "rpm", "tar" ],
+    "windows": [ "zip" ],
+    "freebsd": [ "tar" ]
 }
 
-next_version = '1.9.0'
+next_version = '1.10.0'
 
 ################
 #### Telegraf Functions
@@ -118,7 +118,7 @@ def create_package_fs(build_root):
     logging.debug("Creating a filesystem hierarchy from directory: {}".format(build_root))
     # Using [1:] for the path names due to them being absolute
     # (will overwrite previous paths, per 'os.path.join' documentation)
-    dirs = [ INSTALL_ROOT_DIR[1:], LOG_DIR[1:], SCRIPT_DIR[1:], CONFIG_DIR[1:], LOGROTATE_DIR[1:] ]
+    dirs = [ INSTALL_ROOT_DIR[1:], LOG_DIR[1:], SCRIPT_DIR[1:], CONFIG_DIR[1:], LOGROTATE_DIR[1:], CONFIG_DIR_D[1:] ]
     for d in dirs:
         os.makedirs(os.path.join(build_root, d))
         os.chmod(os.path.join(build_root, d), 0o755)
@@ -455,6 +455,8 @@ def build(version=None,
             goarch = "arm64"
         elif "arm" in arch:
             goarch = "arm"
+        elif arch == "mipsel":
+            goarch = "mipsle"
         build_command += "GOOS={} GOARCH={} ".format(platform, goarch)
 
         if "arm" in arch:
@@ -569,6 +571,8 @@ def package(build_output, pkg_name, version, nightly=False, iteration=1, static=
                     shutil.copy(fr, to)
 
                 for package_type in supported_packages[platform]:
+                    if package_type == "rpm" and arch == "mipsel":
+                        continue
                     # Package the directory structure for each package type for the platform
                     logging.debug("Packaging directory '{}' as '{}'.".format(build_root, package_type))
                     name = pkg_name
