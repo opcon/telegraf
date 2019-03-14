@@ -154,6 +154,7 @@ import (
 	// VLBI Spesific
 	_ "github.com/influxdata/telegraf/plugins/inputs/fieldsystem"
 	_ "github.com/influxdata/telegraf/plugins/inputs/met4"
+	_ "github.com/influxdata/telegraf/plugins/inputs/mgo_datalogger"
 	_ "github.com/influxdata/telegraf/plugins/inputs/modbus_antenna"
 	_ "github.com/influxdata/telegraf/plugins/inputs/rdbe_multicast"
 )
