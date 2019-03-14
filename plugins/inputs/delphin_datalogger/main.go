@@ -39,7 +39,7 @@ var registers = map[string][]register{
 	},
 }
 
-type datalogger struct {
+type Datalogger struct {
 	Address string
 	Port    uint16
 	Timeout internal.Duration
@@ -48,21 +48,21 @@ type datalogger struct {
 
 var config = `
 ## Address and port of datalogger modbus port
-address = "datalogger"
+address = "127.0.0.1"
 port = 502
 timeout = "20s"
 slave_id = 1
 `
 
-func (s *datalogger) SampleConfig() string {
+func (s *Datalogger) SampleConfig() string {
 	return config
 }
 
-func (s *datalogger) Description() string {
+func (s *Datalogger) Description() string {
 	return "Query Delphin data logger configured from MGO"
 }
 
-func (s *datalogger) Gather(acc telegraf.Accumulator) error {
+func (s *Datalogger) Gather(acc telegraf.Accumulator) error {
 	handler := modbus.NewTCPClientHandler(fmt.Sprintf("%s:%d", s.Address, s.Port))
 	handler.SlaveId = s.SlaveId
 	handler.Timeout = s.Timeout.Duration
@@ -106,17 +106,6 @@ func (s *datalogger) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func init() {
-	inputs.Add("mgo_datalogger", func() telegraf.Input {
-		return &datalogger{
-			Address: "datalogger",
-			Port:    502,
-			Timeout: internal.Duration{Duration: 20 * time.Second},
-			SlaveId: 1,
-		}
-	})
-}
-
 type register struct {
 	addr   uint16
 	label  string
@@ -133,4 +122,15 @@ func fixedPoint(scale float64) func([]byte) (interface{}, error) {
 		}
 		return float64(val) * scale, nil
 	}
+}
+
+func init() {
+	inputs.Add("delphin_datalogger", func() telegraf.Input {
+		return &Datalogger{
+			Address: "127.0.0.1",
+			Port:    502,
+			Timeout: internal.Duration{Duration: 20 * time.Second},
+			SlaveId: 1,
+		}
+	})
 }
