@@ -184,7 +184,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/zookeeper"
 
 	// VLBI Spesific
-	_ "github.com/influxdata/telegraf/plugins/inputs/fieldsystem"
+	// _ "github.com/influxdata/telegraf/plugins/inputs/fieldsystem"
 	_ "github.com/influxdata/telegraf/plugins/inputs/met4"
 	_ "github.com/influxdata/telegraf/plugins/inputs/modbus_antenna"
 	_ "github.com/influxdata/telegraf/plugins/inputs/rdbe_multicast"

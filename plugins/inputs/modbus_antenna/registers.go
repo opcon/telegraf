@@ -3,7 +3,6 @@ package modbusAntenna
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 )
 
 type register struct {
@@ -14,29 +13,29 @@ type register struct {
 
 // Group continuous registers together
 // Registers are assumed to be sorted.
-func groupRegisters(registers []register, maxgap uint16) ([][]register, error) {
-	if len(registers) == 0 {
-		return nil, errors.New("empty list")
-	}
-	expectAddr := uint16(0)
-	groups := make([][]register, 0, len(registers))
-	group := make([]register, 0, len(registers))
+func groupRegisters(slaves map[byte][]register, maxgap uint16) map[byte][][]register {
+	slaveGroups := make(map[byte][][]register)
 
-	for i, reg := range registers {
-		if reg.addr < expectAddr {
-			return nil, errors.New("registers list not strictly increasing")
+	for slaveID, registers := range slaves {
+		expectAddr := uint16(0)
+		groups := make([][]register, 0, len(registers))
+		group := make([]register, 0, len(registers))
+
+		for i, reg := range registers {
+			if i == 0 || reg.addr-expectAddr <= maxgap {
+				group = append(group, reg)
+			} else {
+				groups = append(groups, group)
+				group = make([]register, 0, len(registers))
+				group = append(group, reg)
+			}
+			expectAddr = reg.addr + 1
 		}
-		if i == 0 || reg.addr-expectAddr <= maxgap {
-			group = append(group, reg)
-		} else {
-			groups = append(groups, group)
-			group = make([]register, 0, len(registers))
-			group = append(group, reg)
-		}
-		expectAddr = reg.addr + 1
+		groups = append(groups, group)
+		slaveGroups[slaveID] = groups
 	}
-	groups = append(groups, group)
-	return groups, nil
+	return slaveGroups
+
 }
 
 // Filter functions

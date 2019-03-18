@@ -1,7 +1,7 @@
 package modbusAntenna
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -17,7 +17,7 @@ type modbusAntenna struct {
 	MaxGap      int
 
 	initDone bool
-	groups   [][]register
+	groups   map[byte][][]register
 }
 
 var modbusAntennaConfig = `
@@ -52,45 +52,47 @@ func (a *modbusAntenna) Gather(acc telegraf.Accumulator) error {
 
 	fields := make(map[string]interface{})
 
-	handler := modbus.NewTCPClientHandler(a.Address)
-	handler.SlaveId = 0
-	handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
-	err = handler.Connect()
-	if err != nil {
-		return err
-	}
-	defer handler.Close()
-	modbusClient := modbus.NewClient(handler)
-
-	for _, group := range a.groups {
-		startaddr := uint16(group[0].addr)
-		endaddr := uint16(group[len(group)-1].addr)
-
-		// Word = Size of register (32 bits)
-		// ModbusWords = 16bits
-		// For Patriot12m, the index number addresses ModbusWords, but you must
-		// query a whole Word (32 bits) at a time. Reading half a word returns an error.
-
-		const mbuswordsPerWord = 2
-		numMbuswords := (endaddr - startaddr + 1) * mbuswordsPerWord
-
-		// log.Println("I!: ", a.modbusClient, startaddr, numMbuswords)
-
-		raw, err := modbusClient.ReadHoldingRegisters(startaddr, numMbuswords)
+	for slaveid, groups := range a.groups {
+		handler := modbus.NewTCPClientHandler(a.Address)
+		handler.SlaveId = slaveid
+		handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
+		err = handler.Connect()
 		if err != nil {
 			return err
 		}
+		defer handler.Close()
+		modbusClient := modbus.NewClient(handler)
 
-		for _, register := range group {
-			// Position in raw read
-			// Do not assume the group is continuous
-			const bytesPerWord = 4
-			pos := (register.addr - startaddr) * bytesPerWord
-			filtoutput := register.decode(register.label, raw[pos:pos+bytesPerWord])
+		for _, group := range groups {
+			startaddr := uint16(group[0].addr)
+			endaddr := uint16(group[len(group)-1].addr)
 
-			// Merge
-			for k, v := range filtoutput {
-				fields[k] = v
+			// Word = Size of register (32 bits)
+			// ModbusWords = 16bits
+			// For Patriot12m, the index number addresses ModbusWords, but you must
+			// query a whole Word (32 bits) at a time. Reading half a word returns an error.
+
+			const mbuswordsPerWord = 2
+			numMbuswords := (endaddr - startaddr + 1) * mbuswordsPerWord
+
+			// log.Println("I!: ", a.modbusClient, startaddr, numMbuswords)
+
+			raw, err := modbusClient.ReadHoldingRegisters(startaddr, numMbuswords)
+			if err != nil {
+				return err
+			}
+
+			for _, register := range group {
+				// Position in raw read
+				// Do not assume the group is continuous
+				const bytesPerWord = 4
+				pos := (register.addr - startaddr) * bytesPerWord
+				filtoutput := register.decode(register.label, raw[pos:pos+bytesPerWord])
+
+				// Merge
+				for k, v := range filtoutput {
+					fields[k] = v
+				}
 			}
 		}
 	}
@@ -98,20 +100,16 @@ func (a *modbusAntenna) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func (a *modbusAntenna) initAnt() (err error) {
+func (a *modbusAntenna) initAnt() error {
 
 	registers, ok := antennas[a.AntennaType]
 	if !ok {
-		return errors.New("unknown antenna")
+		return fmt.Errorf("unknown antenna %q", a.AntennaType)
 	}
 
-	a.groups, err = groupRegisters(registers, uint16(a.MaxGap))
-	if err != nil {
-		return
-	}
-
+	a.groups = groupRegisters(registers, uint16(a.MaxGap))
 	a.initDone = true
-	return
+	return nil
 }
 
 func init() {
