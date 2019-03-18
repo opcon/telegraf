@@ -10,13 +10,14 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal"
+	"github.com/influxdata/telegraf/internal/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
 
 type InfluxDB struct {
-	URLs []string `toml:"urls"`
-
+	URLs    []string `toml:"urls"`
 	Timeout internal.Duration
+	tls.ClientConfig
 
 	client *http.Client
 }
@@ -37,6 +38,13 @@ func (*InfluxDB) SampleConfig() string {
     "http://localhost:8086/debug/vars"
   ]
 
+  ## Optional TLS Config
+  # tls_ca = "/etc/telegraf/ca.pem"
+  # tls_cert = "/etc/telegraf/cert.pem"
+  # tls_key = "/etc/telegraf/key.pem"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
+
   ## http request & header timeout
   timeout = "5s"
 `
@@ -48,9 +56,14 @@ func (i *InfluxDB) Gather(acc telegraf.Accumulator) error {
 	}
 
 	if i.client == nil {
+		tlsCfg, err := i.ClientConfig.TLSConfig()
+		if err != nil {
+			return err
+		}
 		i.client = &http.Client{
 			Transport: &http.Transport{
 				ResponseHeaderTimeout: i.Timeout.Duration,
+				TLSClientConfig:       tlsCfg,
 			},
 			Timeout: i.Timeout.Duration,
 		}
