@@ -87,7 +87,10 @@ func (a *modbusAntenna) Gather(acc telegraf.Accumulator) error {
 				// Do not assume the group is continuous
 				const bytesPerWord = 4
 				pos := (register.addr - startaddr) * bytesPerWord
-				filtoutput := register.decode(register.label, raw[pos:pos+bytesPerWord])
+				filtoutput, err := register.decode(register.description, raw[pos:pos+bytesPerWord])
+				if err != nil {
+					return err
+				}
 
 				// Merge
 				for k, v := range filtoutput {
