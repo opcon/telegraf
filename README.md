@@ -1,4 +1,4 @@
-# Telegraf [![Circle CI](https://circleci.com/gh/influxdata/telegraf.svg?style=svg)](https://circleci.com/gh/influxdata/telegraf) [![Docker pulls](https://img.shields.io/docker/pulls/library/telegraf.svg)](https://hub.docker.com/_/telegraf/)
+# Telegraf for VLBI
 
 Telegraf is an agent for collecting, processing, aggregating, and writing metrics.
 
@@ -423,3 +423,4 @@ For documentation on the latest development code see the [documentation index][d
 * [udp](./plugins/outputs/socket_writer)
 * [warp10](./plugins/outputs/warp10)
 * [wavefront](./plugins/outputs/wavefront)
+This repository contains plugins specific for VLBI, not of general enough use to be merged into the main branch. 
