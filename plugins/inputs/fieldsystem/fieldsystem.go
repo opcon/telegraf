@@ -10,7 +10,7 @@ import (
 	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/plugins/inputs"
 
-	"fs"
+	"github.com/nvi-inc/fsgo"
 )
 
 type FieldSystem struct {
