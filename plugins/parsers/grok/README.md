@@ -64,6 +64,15 @@ as well as support for most of
 [logstash's builtin patterns](https://github.com/logstash-plugins/logstash-patterns-core/blob/master/patterns/grok-patterns).
 _Golang regular expressions do not support lookahead or lookbehind.
 logstash patterns that depend on these are not supported._
+Telegraf has many of its own [built-in patterns][] as well as support for most
+of the Logstash builtin patterns using [these Go compatible patterns][grok-patterns].
+
+**Note:** Golang regular expressions do not support lookahead or lookbehind.
+Logstash patterns that use these features may not be supported, or may use a Go
+friendly pattern that is not fully compatible with the Logstash pattern.
+
+[built-in patterns]: /plugins/parsers/grok/influx_patterns.go
+[grok-patterns]: https://github.com/vjeantet/grok/blob/master/patterns/grok-patterns
 
 If you need help building patterns to match your logs,
 you will find the https://grokdebug.herokuapp.com application quite useful!

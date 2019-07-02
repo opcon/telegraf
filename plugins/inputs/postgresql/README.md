@@ -32,6 +32,11 @@ More information about the meaning of these metrics can be found in the [Postgre
 
 ## Configuration
 Specify address via a url matching:
+Specify address via a postgresql connection string:
+
+  `host=/run/postgresql user=telegraf database=telegraf`
+  
+Or via an url matching:
 
   `postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]`
 

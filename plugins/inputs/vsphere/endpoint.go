@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"net/url"
 	"regexp"
@@ -368,7 +369,6 @@ func (e *Endpoint) discover(ctx context.Context) error {
 	}
 
 	log.Printf("D! [inputs.vsphere]: Discover new objects for %s", e.URL.Host)
-	resourceKinds := make(map[string]resourceKind)
 	dcNameCache := make(map[string]string)
 
 	numRes := int64(0)
@@ -417,9 +417,9 @@ func (e *Endpoint) discover(ctx context.Context) error {
 	}
 
 	// Build lun2ds map
-	dss := resourceKinds["datastore"]
+	dss := newObjects["datastore"]
 	l2d := make(map[string]string)
-	for _, ds := range dss.objects {
+	for _, ds := range dss {
 		url := ds.altID
 		m := isolateLUN.FindStringSubmatch(url)
 		if m != nil {
@@ -805,9 +805,17 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, acc
 	localNow := time.Now()
 	estInterval := time.Duration(time.Minute)
 	if !res.lastColl.IsZero() {
-		estInterval = localNow.Sub(res.lastColl).Truncate(time.Duration(res.sampling) * time.Second)
+		s := time.Duration(res.sampling) * time.Second
+		rawInterval := localNow.Sub(res.lastColl)
+		paddedInterval := rawInterval + time.Duration(res.sampling/2)*time.Second
+		estInterval = paddedInterval.Truncate(s)
+		if estInterval < s {
+			estInterval = s
+		}
+		log.Printf("D! [inputs.vsphere] Raw interval %s, padded: %s, estimated: %s", rawInterval, paddedInterval, estInterval)
 	}
 	log.Printf("D! [inputs.vsphere] Interval estimated to %s", estInterval)
+	res.lastColl = localNow
 
 	latest := res.latestSample
 	if !latest.IsZero() {
@@ -948,7 +956,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs []types.PerfQuerySpec, 
 			e.populateTags(&objectRef, resourceType, res, t, &v)
 
 			nValues := 0
-			alignedInfo, alignedValues := alignSamples(em.SampleInfo, v.Value, interval) // TODO: Estimate interval
+			alignedInfo, alignedValues := alignSamples(em.SampleInfo, v.Value, interval)
 
 			for idx, sample := range alignedInfo {
 				// According to the docs, SampleInfo and Value should have the same length, but we've seen corrupted
@@ -981,7 +989,11 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs []types.PerfQuerySpec, 
 				if info.UnitInfo.GetElementDescription().Key == "percent" {
 					bucket.fields[fn] = float64(v) / 100.0
 				} else {
-					bucket.fields[fn] = v
+					if e.Parent.UseIntSamples {
+						bucket.fields[fn] = int64(round(v))
+					} else {
+						bucket.fields[fn] = v
+					}
 				}
 				count++
 
@@ -1081,4 +1093,12 @@ func cleanGuestID(id string) string {
 func cleanDiskTag(disk string) string {
 	// Remove enclosing "<>"
 	return strings.TrimSuffix(strings.TrimPrefix(disk, "<"), ">")
+}
+
+func round(x float64) float64 {
+	t := math.Trunc(x)
+	if math.Abs(x-t) >= 0.5 {
+		return t + math.Copysign(1, x)
+	}
+	return t
 }

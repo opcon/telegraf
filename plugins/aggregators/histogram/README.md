@@ -9,6 +9,9 @@ distribution.  This creates a [cumulative histogram](https://en.wikipedia.org/wi
 Like other Telegraf aggregators, the metric is emitted every `period` seconds.
 Bucket counts however are not reset between periods and will be non-strictly
 increasing while Telegraf is running.
+By default bucket counts are not reset between periods and will be non-strictly
+increasing while Telegraf is running. This behavior can be changed by setting the
+`reset` parameter to true.
 
 #### Design
 
@@ -33,6 +36,10 @@ of the algorithm which is implemented in the Prometheus
   ## If true, the original metric will be dropped by the
   ## aggregator and will not get sent to the output plugins.
   drop_original = false
+
+  ## If true, the histogram will be reset on flush instead
+  ## of accumulating the results.
+  reset = false
 
   ## Example config that aggregates all fields of the metric.
   # [[aggregators.histogram.config]]

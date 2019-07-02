@@ -6,6 +6,11 @@ More information about the meaning of these metrics can be found in the [PgBounc
 
 ## Configuration
 Specify address via a url matching:
+Specify address via a postgresql connection string:
+
+  `host=/run/postgresql port=6432 user=telegraf database=pgbouncer`
+
+Or via an url matching:
 
   `postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]`
 

@@ -93,6 +93,14 @@ volumes:
 
 #### Kubernetes Labels
 
+
+```
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```
+
+#### Kubernetes Labels
+
 Kubernetes may add many labels to your containers, if they are not needed you
 may prefer to exclude them:
 ```
@@ -252,6 +260,11 @@ The `docker_container_health` measurements report on a containers
 [HEALTHCHECK](https://docs.docker.com/engine/reference/builder/#healthcheck)
 status if configured.
 
+
+The `docker_container_health` measurements report on a containers
+[HEALTHCHECK](https://docs.docker.com/engine/reference/builder/#healthcheck)
+status if configured.
+
 - docker_container_health (container must use the HEALTHCHECK)
   - tags:
     - engine_host
@@ -273,6 +286,7 @@ status if configured.
     - container_status
     - container_version
   - fields:
+    - container_id
     - oomkilled (boolean)
     - pid (integer)
     - exitcode (integer)

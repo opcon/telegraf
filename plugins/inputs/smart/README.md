@@ -54,6 +54,27 @@ smartctl -s on <device>
   ## Optionally specify devices to exclude from reporting.
   # excludes = [ "/dev/pass6" ]
   #
+
+  ## On most platforms smartctl requires root access.
+  ## Setting 'use_sudo' to true will make use of sudo to run smartctl.
+  ## Sudo must be configured to to allow the telegraf user to run smartctl
+  ## without a password.
+  # use_sudo = false
+
+  ## Skip checking disks in this power mode. Defaults to
+  ## "standby" to not wake up disks that have stoped rotating.
+  ## See --nocheck in the man pages for smartctl.
+  ## smartctl version 5.41 and 5.42 have faulty detection of
+  ## power mode and might require changing this value to
+  ## "never" depending on your disks.
+  # nocheck = "standby"
+
+  ## Gather detailed metrics for each SMART Attribute.
+  # attributes = false
+
+  ## Optionally specify devices to exclude from reporting.
+  # excludes = [ "/dev/pass6" ]
+
   ## Optionally specify devices and device type, if unset
   ## a scan (smartctl --scan) for S.M.A.R.T. devices will
   ## done and all found will be included except for the
