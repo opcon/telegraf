@@ -17,7 +17,7 @@ var intertronic12m = map[byte][]register{
 		{23383, "70.00", "central_status", isiCentral},
 		{23384, "70.01", "cmd_power", boolean},
 		{23385, "70.02", "cmd_operate", boolean},
-		{23386, "70.03", "cmd_run_mode", enum("stop", "position", "velocity", "track")},
+		{23386, "70.03", "cmd_run_mode", enum("stop", "position", "velocity", "stow/service", "track")},
 		{23387, "70.04", "cmd_offset_mode", enum("stop", "position")},
 		{23388, "70.05", "cmd_reset", boolean},
 		{23389, "70.06", "cmd_reboot", integer},
@@ -26,7 +26,7 @@ var intertronic12m = map[byte][]register{
 
 		{23399, "70.16", "data_mode", enum("horizon", "equatorial")},
 
-		{23401, "70.18", "track_data_source", enum("array", "position+rate")},
+		{23401, "70.18", "track_data_source", enum("INVALID", "array", "position+rate")},
 		{23402, "70.19", "ra_dec_offset_enabled", boolean},
 		{23403, "70.20", "unexpired_points", integer},
 		{23404, "70.21", "position_target_az", isiDegrees},
