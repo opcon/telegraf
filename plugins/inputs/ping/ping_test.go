@@ -165,7 +165,6 @@ func TestArguments(t *testing.T) {
 		PingInterval: 1.2,
 		Arguments:    arguments,
 	}
-}
 
 	for _, system := range []string{"darwin", "linux", "anything else"} {
 		actual := p.args("www.google.com", system)

@@ -1,10 +1,8 @@
-# file Output Plugin
 # File Output Plugin
 
 This plugin writes telegraf metrics to files
 
 ### Configuration
-```
 
 ```toml
 [[outputs.file]]

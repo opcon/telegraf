@@ -408,7 +408,6 @@ func (a *Agent) runAggregators(
 				a.push(ctx, agg, acc)
 			}(agg)
 		}
-	}
 
 		aggWg.Wait()
 		close(aggregations)
@@ -640,10 +639,7 @@ func (a *Agent) startServiceInputs(
 
 			started = append(started, si)
 		}
-		log.Printf("D! [agent] Successfully connected to output: %s\n", output.Name)
 	}
-	return nil
-}
 
 	return nil
 }

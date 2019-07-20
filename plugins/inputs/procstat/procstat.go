@@ -131,9 +131,6 @@ func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 	for _, proc := range p.procs {
 		p.addMetric(proc, acc)
 	}
-	tags["pid_finder"] = p.PidFinder
-	tags["result"] = "success"
-	acc.AddFields("procstat_lookup", fields, tags)
 
 	fields := map[string]interface{}{
 		"pid_count":   len(pids),
@@ -191,8 +188,6 @@ func (p *Procstat) addMetric(proc Process, acc telegraf.Accumulator) {
 	if err == nil {
 		fields[prefix+"num_threads"] = numThreads
 	}
-	return procs, nil
-}
 
 	fds, err := proc.NumFDs()
 	if err == nil {

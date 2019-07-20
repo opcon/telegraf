@@ -16,23 +16,6 @@ const (
 	testMsg = "test.tcp.msg:100|c"
 )
 
-const (
-	testMsg = "test.tcp.msg:100|c"
-)
-
-func newTestTcpListener() (*Statsd, chan *bytes.Buffer) {
-	in := make(chan *bytes.Buffer, 1500)
-	listener := &Statsd{
-		Protocol:               "tcp",
-		ServiceAddress:         "localhost:8125",
-		AllowedPendingMessages: 10000,
-		MaxTCPConnections:      250,
-		in:                     in,
-		done:                   make(chan struct{}),
-	}
-	return listener, in
-}
-
 func NewTestStatsd() *Statsd {
 	s := Statsd{}
 

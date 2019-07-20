@@ -93,14 +93,6 @@ volumes:
 
 #### Kubernetes Labels
 
-
-```
-volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
-```
-
-#### Kubernetes Labels
-
 Kubernetes may add many labels to your containers, if they are not needed you
 may prefer to exclude them:
 ```
@@ -255,11 +247,6 @@ some storage drivers such as devicemapper.
     - io_serviced_recursive_total
     - io_serviced_recursive_write
     - container_id
-
-The `docker_container_health` measurements report on a containers
-[HEALTHCHECK](https://docs.docker.com/engine/reference/builder/#healthcheck)
-status if configured.
-
 
 The `docker_container_health` measurements report on a containers
 [HEALTHCHECK](https://docs.docker.com/engine/reference/builder/#healthcheck)

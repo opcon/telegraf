@@ -221,94 +221,6 @@ func TestSelectMetrics(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-type mockSelectMetricsCloudWatchClient struct{}
-
-func (m *mockSelectMetricsCloudWatchClient) ListMetrics(params *cloudwatch.ListMetricsInput) (*cloudwatch.ListMetricsOutput, error) {
-	metrics := []*cloudwatch.Metric{}
-	// 4 metrics are available
-	metricNames := []string{"Latency", "RequestCount", "HealthyHostCount", "UnHealthyHostCount"}
-	// for 3 ELBs
-	loadBalancers := []string{"lb-1", "lb-2", "lb-3"}
-	// in 2 AZs
-	availabilityZones := []string{"us-east-1a", "us-east-1b"}
-	for _, m := range metricNames {
-		for _, lb := range loadBalancers {
-			// For each metric/ELB pair, we get an aggregate value across all AZs.
-			metrics = append(metrics, &cloudwatch.Metric{
-				Namespace:  aws.String("AWS/ELB"),
-				MetricName: aws.String(m),
-				Dimensions: []*cloudwatch.Dimension{
-					{
-						Name:  aws.String("LoadBalancerName"),
-						Value: aws.String(lb),
-					},
-				},
-			})
-			for _, az := range availabilityZones {
-				// We get a metric for each metric/ELB/AZ triplet.
-				metrics = append(metrics, &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/ELB"),
-					MetricName: aws.String(m),
-					Dimensions: []*cloudwatch.Dimension{
-						{
-							Name:  aws.String("LoadBalancerName"),
-							Value: aws.String(lb),
-						},
-						{
-							Name:  aws.String("AvailabilityZone"),
-							Value: aws.String(az),
-						},
-					},
-				})
-			}
-		}
-	}
-
-	result := &cloudwatch.ListMetricsOutput{
-		Metrics: metrics,
-	}
-	return result, nil
-}
-
-func (m *mockSelectMetricsCloudWatchClient) GetMetricStatistics(params *cloudwatch.GetMetricStatisticsInput) (*cloudwatch.GetMetricStatisticsOutput, error) {
-	return nil, nil
-}
-
-func TestSelectMetrics(t *testing.T) {
-	duration, _ := time.ParseDuration("1m")
-	internalDuration := internal.Duration{
-		Duration: duration,
-	}
-	c := &CloudWatch{
-		Region:    "us-east-1",
-		Namespace: "AWS/ELB",
-		Delay:     internalDuration,
-		Period:    internalDuration,
-		RateLimit: 200,
-		Metrics: []*Metric{
-			{
-				MetricNames: []string{"Latency", "RequestCount"},
-				Dimensions: []*Dimension{
-					{
-						Name:  "LoadBalancerName",
-						Value: "*",
-					},
-					{
-						Name:  "AvailabilityZone",
-						Value: "*",
-					},
-				},
-			},
-		},
-	}
-	c.client = &mockSelectMetricsCloudWatchClient{}
-	metrics, err := SelectMetrics(c)
-	// We've asked for 2 (out of 4) metrics, over all 3 load balancers in all 2
-	// AZs. We should get 12 metrics.
-	assert.Equal(t, 12, len(metrics))
-	assert.Nil(t, err)
-}
-
 func TestGenerateStatisticsInputParams(t *testing.T) {
 	d := &cloudwatch.Dimension{
 		Name:  aws.String("LoadBalancerName"),
@@ -397,39 +309,6 @@ func TestMetricsCacheTimeout(t *testing.T) {
 	assert.True(t, cache.isValid())
 	cache.built = time.Now().Add(-time.Minute)
 	assert.False(t, cache.isValid())
-}
-
-func TestUpdateWindow(t *testing.T) {
-	duration, _ := time.ParseDuration("1m")
-	internalDuration := internal.Duration{
-		Duration: duration,
-	}
-
-	c := &CloudWatch{
-		Namespace: "AWS/ELB",
-		Delay:     internalDuration,
-		Period:    internalDuration,
-	}
-
-	now := time.Now()
-
-	assert.True(t, c.windowEnd.IsZero())
-	assert.True(t, c.windowStart.IsZero())
-
-	c.updateWindow(now)
-
-	newStartTime := c.windowEnd
-
-	// initial window just has a single period
-	assert.EqualValues(t, c.windowEnd, now.Add(-c.Delay.Duration))
-	assert.EqualValues(t, c.windowStart, now.Add(-c.Delay.Duration).Add(-c.Period.Duration))
-
-	now = time.Now()
-	c.updateWindow(now)
-
-	// subsequent window uses previous end time as start time
-	assert.EqualValues(t, c.windowEnd, now.Add(-c.Delay.Duration))
-	assert.EqualValues(t, c.windowStart, newStartTime)
 }
 
 func TestUpdateWindow(t *testing.T) {

@@ -192,7 +192,6 @@ func (q *AMQP) Connect() error {
 	if err != nil {
 		return err
 	}
-	q.client = client
 
 	q.client, err = q.connect(q.config)
 	if err != nil {
@@ -242,7 +241,6 @@ func (q *AMQP) Write(metrics []telegraf.Metric) error {
 		if err != nil {
 			return err
 		}
-	}
 
 		body, err = q.encoder.Encode(body)
 		if err != nil {
@@ -273,7 +271,6 @@ func (q *AMQP) Write(metrics []telegraf.Metric) error {
 		q.client.Close()
 		q.client = nil
 	}
-	config.tlsConfig = tlsConfig
 
 	return nil
 }

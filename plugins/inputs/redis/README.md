@@ -97,7 +97,6 @@ Additionally the plugin also calculates the hit/miss ratio (keyspace\_hitrate) a
 
     **Replication**
     - connected_slaves(int, number)
-    - master_repl_offset(int, number)
     - master_link_down_since_seconds(int, number)
     - master_link_status(string)
     - master_repl_offset(int, number)

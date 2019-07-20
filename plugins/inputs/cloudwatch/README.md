@@ -28,12 +28,6 @@ API endpoint. In the following order the plugin will attempt to authenticate.
   ## 4) environment variables
   ## 5) shared credentials file
   ## 6) EC2 Instance Profile
-  #access_key = ""
-  #secret_key = ""
-  #token = ""
-  #role_arn = ""
-  #profile = ""
-  #shared_credential_file = ""
   # access_key = ""
   # secret_key = ""
   # token = ""
@@ -71,10 +65,6 @@ API endpoint. In the following order the plugin will attempt to authenticate.
   namespace = "AWS/ELB"
 
   ## Maximum requests per second. Note that the global default AWS rate limit is
-  ## 400 reqs/sec, so if you define multiple namespaces, these should add up to a
-  ## maximum of 400. Optional - default value is 200.
-  ## See http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_limits.html
-  ratelimit = 200
   ## 50 reqs/sec, so if you define multiple namespaces, these should add up to a
   ## maximum of 50.
   ## See http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_limits.html
@@ -88,15 +78,6 @@ API endpoint. In the following order the plugin will attempt to authenticate.
   ## Metrics to Pull
   ## Defaults to all Metrics in Namespace if nothing is provided
   ## Refreshes Namespace available metrics every 1h
-  [[inputs.cloudwatch.metrics]]
-    names = ["Latency", "RequestCount"]
-
-    ## Dimension filters for Metric.  These are optional however all dimensions
-    ## defined for the metric names must be specified in order to retrieve
-    ## the metric statistics.
-    [[inputs.cloudwatch.metrics.dimensions]]
-      name = "LoadBalancerName"
-      value = "p-example"
   #[[inputs.cloudwatch.metrics]]
   #  names = ["Latency", "RequestCount"]
   #
@@ -196,7 +177,6 @@ aws cloudwatch list-metrics --namespace AWS/EC2 --region us-east-1 --metric-name
 If the expected metrics are not returned, you can try getting them manually
 for a short period of time:
 ```
-aws cloudwatch get-metric-statistics --namespace AWS/EC2 --region us-east-1 --period 300 --start-time 2018-07-01T00:00:00Z --end-time 2018-07-01T00:15:00Z --statistics Average --metric-name CPUCreditBalance --dimensions Name=InstanceId,Value=i-deadbeef
 aws cloudwatch get-metric-data \
   --start-time 2018-07-01T00:00:00Z \
   --end-time 2018-07-01T00:15:00Z \
@@ -226,6 +206,5 @@ aws cloudwatch get-metric-data \
 
 ```
 $ ./telegraf --config telegraf.conf --input-filter cloudwatch --test
-> cloudwatch_aws_elb,load_balancer_name=p-example,region=us-east-1,unit=seconds latency_average=0.004810798017284538,latency_maximum=0.1100282669067383,latency_minimum=0.0006084442138671875,latency_sample_count=4029,latency_sum=19.382705211639404 1459542420000000000
 > cloudwatch_aws_elb,load_balancer_name=p-example,region=us-east-1 latency_average=0.004810798017284538,latency_maximum=0.1100282669067383,latency_minimum=0.0006084442138671875,latency_sample_count=4029,latency_sum=19.382705211639404 1459542420000000000
 ```

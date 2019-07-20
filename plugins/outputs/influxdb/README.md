@@ -9,22 +9,6 @@ The InfluxDB output plugin writes metrics to the [InfluxDB v1.x] HTTP or UDP ser
 [[outputs.influxdb]]
   ## The full HTTP or UDP URL for your InfluxDB instance.
   ##
-  ## Multiple urls can be specified as part of the same cluster,
-  ## this means that only ONE of the urls will be written to each interval.
-  # urls = ["udp://localhost:8089"] # UDP endpoint example
-  urls = ["http://localhost:8086"] # required
-  ## The target database for metrics (telegraf will create it if not exists).
-  database = "telegraf" # required
-
-  ## Name of existing retention policy to write to.  Empty string writes to
-  ## the default retention policy.
-  retention_policy = ""
-  ## Write consistency (clusters only), can be: "any", "one", "quorum", "all"
-  write_consistency = "any"
-
-  ## Write timeout (for the InfluxDB client), formatted as a string.
-  ## If not provided, will default to 5s. 0s means no timeout (not recommended).
-  timeout = "5s"
   ## Multiple URLs can be specified for a single cluster, only ONE of the
   ## urls will be written to each interval.
   # urls = ["unix:///var/run/influxdb.sock"]
@@ -90,15 +74,4 @@ The InfluxDB output plugin writes metrics to the [InfluxDB v1.x] HTTP or UDP ser
   # influx_uint_support = false
 ```
 
-* `write_consistency`: Write consistency (clusters only), can be: "any", "one", "quorum", "all".
-* `retention_policy`:  Name of existing retention policy to write to.  Empty string writes to the default retention policy.
-* `timeout`: Write timeout (for the InfluxDB client), formatted as a string. If not provided, will default to 5s. 0s means no timeout (not recommended).
-* `username`: Username for influxdb
-* `password`: Password for influxdb
-* `user_agent`:  Set the user agent for HTTP POSTs (can be useful for log differentiation)
-* `udp_payload`: Set UDP payload size, defaults to InfluxDB UDP Client default (512 bytes)
-* `ssl_ca`: SSL CA
-* `ssl_cert`: SSL CERT
-* `ssl_key`: SSL key
-* `insecure_skip_verify`: Use SSL but skip chain & host verification (default: false)
 [InfluxDB v1.x]: https://github.com/influxdata/influxdb

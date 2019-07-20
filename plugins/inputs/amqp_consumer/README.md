@@ -27,7 +27,6 @@ The following defaults are known to work with RabbitMQ:
   # username = ""
   # password = ""
 
-  ## Exchange to declare and consume from.
   ## Name of the exchange to declare.  If unset, no exchange will be declared.
   exchange = "telegraf"
 
@@ -50,7 +49,6 @@ The following defaults are known to work with RabbitMQ:
   ## AMQP queue durability can be "transient" or "durable".
   queue_durability = "durable"
 
-  ## Binding Key
   ## If true, queue will be passively declared.
   # queue_passive = false
 

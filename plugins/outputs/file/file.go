@@ -52,6 +52,8 @@ func (f *File) SetSerializer(serializer serializers.Serializer) {
 }
 
 func (f *File) Connect() error {
+	writers := []io.Writer{}
+
 	if len(f.Files) == 0 {
 		f.Files = []string{"stdout"}
 	}
@@ -70,6 +72,7 @@ func (f *File) Connect() error {
 			f.closers = append(f.closers, of)
 		}
 	}
+	f.writer = io.MultiWriter(writers...)
 	return nil
 }
 
