@@ -8,6 +8,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs"
 
 	"github.com/goburrow/modbus"
+	"github.com/pkg/errors"
 )
 
 type modbusAntenna struct {
@@ -58,7 +59,7 @@ func (a *modbusAntenna) Gather(acc telegraf.Accumulator) error {
 		handler.Timeout = time.Duration(a.Timeout) * time.Millisecond
 		err = handler.Connect()
 		if err != nil {
-			return err
+			return errors.Wrap(err, fmt.Sprintf("setting up handler for slave %d", slaveid))
 		}
 		defer handler.Close()
 		modbusClient := modbus.NewClient(handler)
@@ -75,11 +76,9 @@ func (a *modbusAntenna) Gather(acc telegraf.Accumulator) error {
 			const mbuswordsPerWord = 2
 			numMbuswords := (endaddr - startaddr + 1) * mbuswordsPerWord
 
-			// log.Println("I!: ", a.modbusClient, startaddr, numMbuswords)
-
 			raw, err := modbusClient.ReadHoldingRegisters(startaddr, numMbuswords)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "reading holding registers")
 			}
 
 			for _, register := range group {
@@ -89,7 +88,7 @@ func (a *modbusAntenna) Gather(acc telegraf.Accumulator) error {
 				pos := (register.addr - startaddr) * bytesPerWord
 				filtoutput, err := register.decode(register.description, raw[pos:pos+bytesPerWord])
 				if err != nil {
-					return err
+					return errors.Wrap(err, fmt.Sprintf("decoding %s", register.description))
 				}
 
 				// Merge
