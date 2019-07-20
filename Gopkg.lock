@@ -415,6 +415,14 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:2defd14040b1ca18840524e9d0f9cfab0ea8d2f2d396b343d221f8bc8e21ab9d"
+  name = "github.com/fatih/structs"
+  packages = ["."]
+  pruneopts = ""
+  revision = "4966fc68f5b7593aafa6cbbba2d65ec6e1416047"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:ec95c1c49fbec27ab5383b9c47fae5c2fe1d97ac5b41d36d78e17588a44e9f3f"
   name = "github.com/ghodss/yaml"
@@ -473,6 +481,22 @@
   pruneopts = ""
   revision = "d523deb1b23d913de5bdada721a6071e71283618"
   version = "v1.4.0"
+
+[[projects]]
+  digest = "1:3042d4d2ee2842e0bce7278104b410e0b31905242f55556c9e0e20455c080232"
+  name = "github.com/goburrow/modbus"
+  packages = ["."]
+  pruneopts = ""
+  revision = "606c02f4eef527a1d4cf7d8733d5fd7ba34f91d8"
+  version = "v0.1.0"
+
+[[projects]]
+  digest = "1:6f474cbff39749761da6dcefa3ba6d870f10e0fe9ef3686a0c572e50cfa1d51f"
+  name = "github.com/goburrow/serial"
+  packages = ["."]
+  pruneopts = ""
+  revision = "5efbe925ecf714f8ba147bf2226f2e7afc7111bc"
+  version = "v0.1.0"
 
 [[projects]]
   digest = "1:9ab1b1c637d7c8f49e39d8538a650d7eb2137b076790cff69d160823b505964c"
@@ -868,6 +892,34 @@
   pruneopts = ""
   revision = "eee57a3ac4174c55924125bb15eeeda8cffb6e6f"
   version = "v1.0.7"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c76e67630906bd3c7b513dd859d004b5cefb71689cf8e686ae2c78869119fbf5"
+  name = "github.com/nvi-inc/fsgo"
+  packages = [
+    ".",
+    "versions",
+    "versions/all",
+    "versions/fs9.11.19",
+    "versions/fs9.11.8",
+    "versions/fs9.12.10",
+    "versions/fs9.12.11",
+    "versions/fs9.12.12",
+    "versions/fs9.12.8",
+    "versions/fs9.12.9",
+    "versions/fs9.13.0",
+  ]
+  pruneopts = ""
+  revision = "939289e65cc27b32fcb77bb7586276af19bc153a"
+
+[[projects]]
+  branch = "master"
+  digest = "1:42f04185cbd9358d8e02d3e13ba14d8b81e3c49deec5b33480a4f825c26001f4"
+  name = "github.com/nvi-inc/svipc"
+  packages = ["."]
+  pruneopts = ""
+  revision = "f4039c678d69ca43d3706bc67bb47d1447162945"
 
 [[projects]]
   branch = "master"
@@ -1604,6 +1656,7 @@
     "github.com/go-logfmt/logfmt",
     "github.com/go-redis/redis",
     "github.com/go-sql-driver/mysql",
+    "github.com/goburrow/modbus",
     "github.com/gobwas/glob",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes/duration",
@@ -1637,6 +1690,7 @@
     "github.com/nats-io/gnatsd/server",
     "github.com/nats-io/go-nats",
     "github.com/nsqio/go-nsq",
+    "github.com/nvi-inc/fsgo",
     "github.com/openconfig/gnmi/proto/gnmi",
     "github.com/openzipkin/zipkin-go-opentracing",
     "github.com/openzipkin/zipkin-go-opentracing/thrift/gen-go/zipkincore",
