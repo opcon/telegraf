@@ -53,7 +53,7 @@ func (s *FieldSystem) Start(acc telegraf.Accumulator) (err error) {
 	s.done = make(chan struct{})
 
 	s.acc = acc
-	s.acc.SetPrecision(0, s.Precision.Duration)
+	s.acc.SetPrecision(s.Precision.Duration)
 
 	s.fs, err = fs.NewFieldSystem()
 	if err != nil {
