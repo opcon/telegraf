@@ -213,6 +213,23 @@ For additional details reference the [RabbitMQ Management HTTP Stats][management
     - messages_return_unroutable (int, count)
 
 ### Sample Queries
+  - url
+  - queue
+  - vhost
+  - node
+  - durable
+  - auto_delete
+
+- rabbitmq_exchange
+  - url
+  - exchange
+  - type
+  - vhost
+  - internal
+  - durable
+  - auto_delete
+
+### Sample Queries:
 
 Message rates for the entire node can be calculated from total message counts. For instance, to get the rate of messages published per minute, use this query:
 

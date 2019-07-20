@@ -132,6 +132,7 @@ Architecture][k8s-telegraf] or view the Helm charts:
     - used_bytes
 
 * kubernetes_pod_network
++ kubernetes_pod_network
   - tags:
     - namespace
     - node_name

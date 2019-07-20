@@ -110,3 +110,7 @@ jenkins_job,host=myhost,name=JOB1,parents=apps/br1,result=SUCCESS,source=my-jenk
 jenkins_job,host=myhost,name=JOB2,parents=apps/br2,result=SUCCESS,source=my-jenkins-instance,port=8080 duration=2285i,result_code=0i 1516027230000000000
 ```
 
+jenkins_node,arch=Linux\ (amd64),disk_path=/var/jenkins_home,temp_path=/tmp,host=myhost,node_name=master swap_total=4294963200,memory_available=586711040,memory_total=6089498624,status=online,response_time=1000i,disk_available=152392036352,temp_available=152392036352,swap_available=3503263744 1516031535000000000
+jenkins_job,host=myhost,name=JOB1,parents=apps/br1,result=SUCCESS duration=2831i,result_code=0i 1516026630000000000
+jenkins_job,host=myhost,name=JOB2,parents=apps/br2,result=SUCCESS duration=2285i,result_code=0i 1516027230000000000
+```
