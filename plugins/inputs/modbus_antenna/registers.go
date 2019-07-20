@@ -90,7 +90,7 @@ func enum(names ...string) decodeFn {
 		}
 
 		if val >= uint32(len(names)) {
-			return nil, fmt.Errorf("out of range")
+			return nil, fmt.Errorf("out of range: expected less than %d, got %d", len(names), val)
 		}
 
 		return map[string]interface{}{name: names[val]}, nil
