@@ -10,12 +10,15 @@ import (
 	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/plugins/inputs"
 
-	"github.com/nvi-inc/fsgo"
+	"github.com/pkg/errors"
+
+	fs "github.com/nvi-inc/fsgo"
 )
 
 type FieldSystem struct {
 	Rdbe      bool
 	Precision internal.Duration
+	Version   string
 
 	sync.Mutex
 	done chan struct{}
@@ -34,6 +37,7 @@ var FieldSystemConfig = `
 #rdbe = false 
 ## Rate to poll FS variables.
 #precision = "100ms"
+#version = "9.13.0"
 `
 
 func (s *FieldSystem) SampleConfig() string {
@@ -55,9 +59,18 @@ func (s *FieldSystem) Start(acc telegraf.Accumulator) (err error) {
 	s.acc = acc
 	s.acc.SetPrecision(s.Precision.Duration)
 
-	s.fs, err = fs.NewFieldSystem()
-	if err != nil {
-		return err
+	if s.Version == "" {
+		s.fs, err = fs.NewFieldSystem()
+
+		if err != nil {
+			return errors.Wrap(err, "connecting to the field system")
+		}
+	} else {
+		s.fs, err = fs.NewFieldSystemVersion(s.Version)
+
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("connecting to the field system with version %q", s.Version))
+		}
 	}
 
 	// FS semephores
