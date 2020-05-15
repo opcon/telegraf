@@ -60,13 +60,13 @@ func (s *FieldSystem) Start(acc telegraf.Accumulator) (err error) {
 	s.acc.SetPrecision(s.Precision.Duration)
 
 	if s.Version == "" {
-		s.fs, err = fs.NewFieldSystem()
+		s.fs, err = fs.Attach()
 
 		if err != nil {
 			return errors.Wrap(err, "connecting to the field system")
 		}
 	} else {
-		s.fs, err = fs.NewFieldSystemVersion(s.Version)
+		s.fs, err = fs.AttachVersion(s.Version)
 
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("connecting to the field system with version %q", s.Version))
