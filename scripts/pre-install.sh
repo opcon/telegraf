@@ -7,10 +7,10 @@ fi
 if ! id telegraf &>/dev/null; then
         if useradd -h 2>&1 | grep -q "^[[:space:]]*-M"; then
         # Newer version of useradd have -M option to force not creating home dir
-        useradd -r -M telegraf -s /bin/false -d /etc/telegraf
+    	useradd -r -M telegraf -s /bin/false -d /etc/telegraf -g telegraf
     else
         # Older version does not create home dir by default
-        useradd -r telegraf -s /bin/false -d /etc/telegraf
+        useradd -r telegraf -s /bin/false -d /etc/telegraf -g telegraf
     fi
 fi
 
