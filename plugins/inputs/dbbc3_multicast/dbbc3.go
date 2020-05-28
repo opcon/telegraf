@@ -49,9 +49,9 @@ func (u *DbbcMulticast) Gather(_ telegraf.Accumulator) error {
 func (u *DbbcMulticast) Start(acc telegraf.Accumulator) error {
 	c := &jsonparser.Config{
 		MetricName:   "dbbc3multicast",
-		TagKeys:      []string{},
+		TagKeys:      []string{"version"},
 		NameKey:      "",
-		StringFields: []string{"version"},
+		StringFields: []string{},
 		Query:        u.Query,
 		TimeKey:      "",
 		TimeFormat:   "",
