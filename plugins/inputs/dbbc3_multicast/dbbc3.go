@@ -84,8 +84,8 @@ func (u *DbbcMulticast) Start(acc telegraf.Accumulator) error {
 			msgjson, err := json.Marshal(&msg)
 
 			ms, err := parser.Parse(msgjson)
-			if err == nil {
-				u.Log.Errorf("Error parsing log line: %s", err.Error())
+			if err != nil {
+				u.Log.Errorf("Error parsing json: %w", err)
 				continue
 			}
 
